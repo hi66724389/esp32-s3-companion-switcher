@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ESP32-S3 導播台 v2 & 36鍵 VBAN Intercom 主站 · A4 橫式好列印版工程圖紙 (5頁全冊)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 14px; background: #cbd5e1; color: #0f172a; font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; }
+  .toolbar { max-width: 1120px; margin: 0 auto 14px; background: #0f172a; color: #f8fafc; padding: 10px 16px; border-radius: 8px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+  .toolbar a { color: #38bdf8; text-decoration: none; font-size: 12.5px; }
+  .btn { padding: 6px 12px; border-radius: 6px; border: 1px solid #475569; background: #1e293b; color: #fff; cursor: pointer; font-size: 12.5px; font-weight: 700; }
+  .btn-primary { background: #22c55e; color: #052e16; border-color: #22c55e; }
+
+  /* A4 橫式工程圖紙容器 (297 x 210 mm 比例) */
+  .sheet {
+    width: 1120px; min-height: 765px; margin: 0 auto 20px; background: #ffffff;
+    border: 2px solid #0f172a; border-radius: 4px; padding: 12px 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18); display: flex; flex-direction: column; justify-content: space-between;
+  }
+  body.bw-mode .sheet { filter: grayscale(100%) contrast(125%); }
+
+  .sheet-hdr { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-bottom: 8px; }
+  .sheet-title { font-size: 16px; font-weight: 800; color: #0f172a; }
+  .sheet-sub { font-size: 11.5px; color: #334155; }
+  .sheet-tag { background: #0f172a; color: #fff; padding: 3px 10px; font-size: 12px; font-weight: 700; border-radius: 3px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .box { border: 1.5px solid #334155; border-radius: 4px; padding: 7px 9px; background: #fff; }
+  .box-h { font-size: 12.5px; font-weight: 800; background: #f1f5f9; border-bottom: 1px solid #94a3b8; margin: -7px -9px 6px; padding: 4px 9px; color: #0f172a; }
+
+  table.t { width: 100%; border-collapse: collapse; font-size: 11.2px; line-height: 1.28; }
+  table.t th, table.t td { border: 1px solid #64748b; padding: 3px 5px; text-align: left; vertical-align: middle; }
+  table.t th { background: #e2e8f0; font-weight: 800; color: #0f172a; }
+  .hi-y { background: #fef9c3; font-weight: 700; }
+  .hi-g { background: #dcfce7; font-weight: 700; }
+  .hi-b { background: #e0f2fe; font-weight: 700; }
+  .hi-p { background: #f3e8ff; font-weight: 700; }
+  .hi-r { background: #fee2e2; font-weight: 700; }
+
+  .sheet-ftr { border-top: 1.5px solid #0f172a; padding-top: 4px; margin-top: 8px; display: flex; justify-content: space-between; font-size: 10.5px; color: #334155; font-family: monospace; }
+
+  @page { size: A4 landscape; margin: 7mm; }
+  @media print {
+    body { background: #fff !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+    .sheet { width: 100% !important; min-height: auto !important; margin: 0 !important; box-shadow: none !important; border-radius: 0 !important; page-break-after: always; break-after: page; page-break-inside: avoid; }
+    .sheet:last-child { page-break-after: auto; break-after: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 頂部非列印工具列 -->
+<div class="toolbar no-print">
+  <div>
+    <strong>🖨️ A4 橫式好列印版工程接線圖紙 (共 5 頁 · 專為 A4 紙張與 PDF 排版)</strong>
+    <div style="margin-top:3px">
+      <a href="./vban_system_overview_and_webui.html">⬅️ 返回互動式面板與 Web UI 展示中心</a> ｜
+      <a href="./esp32s3_all_wiring_big.html">80鍵大圖</a> ｜
+      <a href="./vban_intercom_wiring_big.html">36鍵 Intercom 大圖</a>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn" onclick="document.body.classList.toggle('bw-mode')">🖨️ 切換黑白雷射省墨模式</button>
+    <button class="btn btn-primary" onclick="window.print()">🖨️ 立即列印 / 儲存為 A4 橫式 PDF (5頁)</button>
+  </div>
+</div>
+
+<!-- ==================== SHEET 1 / 5：36 鍵 VBAN Intercom 主站 全腳位與面板配置圖 ==================== -->
+<section class="sheet">
+  <div>
+    <div class="sheet-hdr">
+      <div>
+        <div class="sheet-title">圖紙 1/5：【獨立 36 鍵 VBAN Intercom 對講 & 路由拆分主站】ESP32-S3 44-Pin 雙 SPI 分流全腳位與面板圖</div>
+        <div class="sheet-sub">主控：ESP32-S3-DevKitC-1 (N16R8) · 黃金架構：W5500 獨佔 SPI2 (40MHz) + 7 塊彩屏走獨立 SPI3 + 0.0ms 自聽 + 三段式發話撥桿</div>
+      </div>
+      <div class="sheet-tag">SHEET 1 OF 5 · INTERCOM MCU PINOUT</div>
+    </div>
+
+    <div class="grid-2">
+      <!-- 左半：J1 / J3 44-Pin 完整對照表 -->
+      <div class="box">
+        <div class="box-h">1A. ESP32-S3-DevKitC-1 (N16R8) 左側 J1 與右側 J3 排針逐腳接線表（已用 29 · 空腳 0 · 禁區 7）</div>
+        <table class="t">
+          <thead>
+            <tr><th>J1 腳位</th><th>連接目標 (左排 1–22)</th><th>J3 腳位</th><th>連接目標 (右排 1–22)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>J1-1/2 3V3</code></td><td>供 6×74HC165、W5500、上拉電阻</td><td><code>J3-1 GND</code></td><td>系統共地</td></tr>
+            <tr><td><code>J1-3 RST</code></td><td>板載 EN 復位</td><td><code>J3-2/3 G43/44</code></td><td>UART0 TX/RX (板載除錯燒錄口保留)</td></tr>
+            <tr class="hi-g"><td><code>J1-4 G4</code></td><td><strong>I2S0 BCLK</strong> ➔ WM8960 BCLK</td><td class="hi-b"><code>J3-4 G1</code></td><td><strong>SPI3 MOSI (SDA)</strong> ➔ 串 33Ω 接 7 塊彩屏</td></tr>
+            <tr class="hi-g"><td><code>J1-5 G5</code></td><td><strong>I2S0 LRCK</strong> ➔ WM8960 LRCK (WS)</td><td class="hi-b"><code>J3-5 G2</code></td><td><strong>SPI3 SCLK (SCL)</strong> ➔ 串 33Ω 接 7 塊彩屏</td></tr>
+            <tr class="hi-y"><td><code>J1-6/7 G6/G7</code></td><td><strong>E1 旋鈕 A/B 相 (PCNT0)</strong> 耳機/小喇叭音量</td><td class="hi-b"><code>J3-6 G42</code></td><td><strong>SPI3 DC 共用腳</strong> ➔ 並聯 6 小屏 + 4.0" 大屏</td></tr>
+            <tr class="hi-y"><td><code>J1-8/9 G15/16</code></td><td><strong>E2 旋鈕 A/B 相 (PCNT1)</strong> PGM/0ms自聽混音</td><td class="hi-y"><code>J3-7 G41</code></td><td><strong>74HC165 SH/LD</strong> ➔ 並聯 U1–U6 Pin 1</td></tr>
+            <tr class="hi-y"><td><code>J1-10/11 G17/18</code></td><td><strong>ENC3 旋鈕 A/B (PCNT2)</strong> 選單/Mic增益/鍵盤</td><td class="hi-y"><code>J3-8 G40</code></td><td><strong>74HC165 CLK</strong> ➔ 並聯 U1–U6 Pin 2</td></tr>
+            <tr class="hi-p"><td><code>J1-12 G8</code></td><td><strong>I2C SDA</strong> ➔ MCP23017(0x20) + WM8960(0x1A)</td><td class="hi-g"><code>J3-9 G39</code></td><td><strong>I2S0 DIN</strong> ⬅ WM8960 ADCDAT (本機 Mic)</td></tr>
+            <tr><td><code>J1-13/14 G3/46</code></td><td>⛔ Strapping 禁區（勿接外設）</td><td class="hi-g"><code>J3-10 G38</code></td><td><strong>I2S0 DOUT</strong> ➔ WM8960 DACDAT (耳機/喇叭)</td></tr>
+            <tr class="hi-p"><td><code>J1-15 G9</code></td><td><strong>I2C SCL</strong> ➔ 4.7kΩ 上拉至 3.3V</td><td><code>J3-11~15</code></td><td>⛔ G35–37(PSRAM), G0(Boot), G45 嚴禁外接</td></tr>
+            <tr class="hi-b"><td><code>J1-16 G10</code></td><td><strong>SPI2 CS</strong> ➔ W5500 SCS (獨佔 SPI2!)</td><td class="hi-p"><code>J3-16 G48</code></td><td><strong>SK6812 燈鏈 DIN</strong> ➔ 串 330Ω 接 LED #0–#35</td></tr>
+            <tr class="hi-b"><td><code>J1-17 G11</code></td><td><strong>SPI2 MOSI</strong> ➔ 僅接 W5500 MOSI</td><td class="hi-b"><code>J3-17 G47</code></td><td><strong>W5500 RST</strong> ➔ 原生 GPIO 硬體復位網口</td></tr>
+            <tr class="hi-b"><td><code>J1-18 G12</code></td><td><strong>SPI2 SCLK</strong> ➔ 僅接 W5500 SCLK (40MHz)</td><td class="hi-y"><code>J3-18 G21</code></td><td><strong>74HC165 QH 讀入</strong> ⬅ 末片 U6 Pin 9 (48 bits)</td></tr>
+            <tr class="hi-b"><td><code>J1-19/20 G13/14</code></td><td><strong>SPI2 MISO / INT</strong> ⬅ W5500 MISO & 中斷</td><td><code>J3-19/20 G20/19</code></td><td><strong>USB-C D+/D-</strong> (TinyUSB NCM 網卡 + CDC)</td></tr>
+            <tr><td><code>J1-21/22 5V/GND</code></td><td>外部 5V/3A (或 PoE 分離器) 與星形共地</td><td><code>J3-21/22 GND</code></td><td>系統共地</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 右半：面板實體配置圖與操作邏輯 -->
+      <div class="box">
+        <div class="box-h">1B. 面板結構圖（4.0" 監控大屏 + 內建 1W 小喇叭 + 三段式發話撥桿 + 6×[2×3] 工位 Pod）</div>
+        <div style="border:2px solid #0f172a;padding:8px;border-radius:4px;font-size:11px;background:#f8fafc;margin-bottom:8px">
+          <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:8px;margin-bottom:8px">
+            <div style="border:2px solid #1d4ed8;background:#eff6ff;padding:6px;border-radius:4px">
+              <strong>🖥️ 4.0" ST7796S (480×320 · SPI3 · CS=MCP GPA6)</strong><br>
+              • 頂部常駐：<strong>🎙️ 本機 Mic VU 音量表 (-60~0dB + CLIP 紅燈)</strong><br>
+              • 頂部常駐：<strong>🎚️ Mic PGA 增益表 (0~+30dB) + 🎧 0.0ms 自聽表</strong><br>
+              • 中央顯示：<strong>🎯 部分同發已選清單</strong>、8ch VBAN 拆分表、<strong>LVGL 虛擬鍵盤</strong><br>
+              • <strong>🏷️ 自動顯示遠端 VBAN 傳來的裝置名稱</strong>（與內建 Web UI 100% 同步）
+            </div>
+            <div style="border:1.5px solid #334155;background:#fff;padding:6px;border-radius:4px">
+              <strong>🔘 E1 (耳機/喇叭音量)</strong> · <strong>🔘 E2 (PGM/自聽)</strong> · <strong>🔘 ENC3 (選單/增益)</strong><br>
+              <strong>🔊 面板內建 8Ω/1W 小喇叭</strong> (接 WM8960 SPK_LP/LN，發話自動 Cut 防嘯叫)<br>
+              <strong>🕹️ 三段式發話撥桿 (U6.F / U6.G)</strong>：<br>
+              &nbsp;&nbsp;▲ 上扳自鎖 = 持續發話 (Latch) ｜ ● 中置 = MUTE ｜ ▼ 下壓彈回 = PTT<br>
+              <strong>⌨️ 6 導覽鍵 (U5.H–U6.E)</strong>：<code>[▲] [▼] [◀] [▶] [⏎進入] [⎋離開]</code>
+            </div>
+          </div>
+          <div class="grid-3">
+            <div style="border:1px solid #0d9488;padding:4px;background:#fff"><strong>LCD #1 (GPA0) · Pod 1 核心組</strong><br><code>K0 DIR</code> <code>K1 AD</code> <code>K2 PROD</code><br><code>K3 AUD</code> <code>K4 CG</code> <code>K5 VTR</code></div>
+            <div style="border:1px solid #0d9488;padding:4px;background:#fff"><strong>LCD #2 (GPA1) · Pod 2 攝影 A</strong><br><code>K6 CAM1</code> <code>K7 CAM2</code> <code>K8 CAM3</code><br><code>K9 CAM4</code> <code>K10 CAM5</code> <code>K11 CAM6</code></div>
+            <div style="border:1px solid #0d9488;padding:4px;background:#fff"><strong>LCD #3 (GPA2) · Pod 3 攝影 B</strong><br><code>K12 CAM7</code> <code>K13 CAM8</code> <code>K14 JIB</code><br><code>K15 STEAD</code> <code>K16 DRONE</code> <code>K17 POV</code></div>
+            <div style="border:1px solid #0d9488;padding:4px;background:#fff"><strong>LCD #4 (GPA3) · Pod 4 舞台組</strong><br><code>K18 STG</code> <code>K19 LGT</code> <code>K20 LED</code><br><code>K21 HOST</code> <code>K22 GUEST</code> <code>K23 FLOOR</code></div>
+            <div style="border:1px solid #0d9488;padding:4px;background:#fff"><strong>LCD #5 (GPA4) · Pod 5 群組群發</strong><br><code>K24 ALL全體</code> <code>K25 GRP1攝</code> <code>K26 GRP2技</code><br><code>K27 GRP3舞</code> <code>K28 IFB1</code> <code>K29 IFB2</code></div>
+            <div style="border:1px solid #0d9488;padding:4px;background:#fff"><strong>LCD #6 (GPA5) · Pod 6 同發/路由</strong><br><code>K30 MULTI同發</code> <code>K31 MUTE禁聽</code> <code>K32 CLR</code><br><code>K33 SPL1</code> <code>K34 SPL2</code> <code>K35 DUCK閃避</code></div>
+          </div>
+        </div>
+
+        <table class="t">
+          <thead><tr><th>操作動作</th><th>SK6812 燈色與系統反應（廣電級對講邏輯）</th></tr></thead>
+          <tbody>
+            <tr><td><strong>對方開口講話 (VOX > -40dB)</strong></td><td>🟠 <strong>橘白快閃</strong> + 2.25" 螢幕該格跳動動態音柱（不需對方按 Call 也能秒抓誰在講話）</td></tr>
+            <tr><td><strong>單擊工位鍵 (可選部分同發)</strong></td><td>🩵 <strong>亮青色預選燈</strong>（可自由勾選多個人）➔ 壓下<strong>三段式發話撥桿</strong>即同步對勾選名單發話（變 🟢 綠燈）</td></tr>
+            <tr><td><strong>雙擊工位鍵 (單獨 Mute 別人)</strong></td><td>🟣 <strong>亮紫紅暗燈 + 螢幕標示 🔇MUTE</strong>：立即將該工位來話靜音，不怕現場有人忘記關麥克風吵全場</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="sheet-ftr">
+    <span>專案：ESP32-S3 Standalone VBAN Intercom & Router (36-Key)</span>
+    <span>雙 SPI 無阻塞架構：SPI2=W5500 / SPI3=7×LCD</span>
+    <span>PAGE 1 / 5</span>
+  </div>
+</section>
+
+<!-- ==================== SHEET 2 / 5：36 鍵 Intercom 主站 6×74HC165 與 MCP23017 逐針接線表 ==================== -->
+<section class="sheet">
+  <div>
+    <div class="sheet-hdr">
+      <div>
+        <div class="sheet-title">圖紙 2/5：【獨立 36 鍵 VBAN Intercom 主站】6× 74HC165 (48路輸入滿載) 與單顆 MCP23017 逐針接線表</div>
+        <div class="sheet-sub">共用控制線：G40 = CLK (Pin 2) · G41 = SH/LD (Pin 1) · G21 = 末片 U6 QH (Pin 9) · 全部 Pin 15 (/CE) 強制接地 · 每片配 1 條 A103J 10kΩ 排阻</div>
+      </div>
+      <div class="sheet-tag">SHEET 2 OF 5 · SHIFT REGISTERS & MCP23017</div>
+    </div>
+
+    <div class="box" style="margin-bottom:10px">
+      <div class="box-h">2A. 6 片 SN74HC165D (U1–U6) 菊花鏈 48 路輸入逐腳分配總表（含 36 工位鍵 + 3 旋鈕 S2 + 6 導覽鍵 + 三段式發話撥桿 + 腳踏 PTT）</div>
+      <table class="t">
+        <thead>
+          <tr>
+            <th>晶片編號</th>
+            <th>串聯接法 (Pin 10 ➔ Pin 9)</th>
+            <th>Pin 11 (A)</th><th>Pin 12 (B)</th><th>Pin 13 (C)</th><th>Pin 14 (D)</th>
+            <th>Pin 3 (E)</th><th>Pin 4 (F)</th><th>Pin 5 (G)</th><th>Pin 6 (H)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>U1 (#1)</strong></td><td>Pin 10 接 <code>GND</code> ➔ Pin 9 接 U2.10</td>
+            <td>K0 (DIR導播)</td><td>K1 (AD副導)</td><td>K2 (PROD製作)</td><td>K3 (AUD音控)</td>
+            <td>K4 (CG字幕)</td><td>K5 (VTR慢動)</td><td>K6 (CAM1一機)</td><td>K7 (CAM2二機)</td>
+          </tr>
+          <tr>
+            <td><strong>U2 (#2)</strong></td><td>Pin 10 接 U1.9 ➔ Pin 9 接 U3.10</td>
+            <td>K8 (CAM3三機)</td><td>K9 (CAM4四機)</td><td>K10 (CAM5五機)</td><td>K11 (CAM6六機)</td>
+            <td>K12 (CAM7七機)</td><td>K13 (CAM8八機)</td><td>K14 (JIB搖臂)</td><td>K15 (STEAD穩定)</td>
+          </tr>
+          <tr>
+            <td><strong>U3 (#3)</strong></td><td>Pin 10 接 U2.9 ➔ Pin 9 接 U4.10</td>
+            <td>K16 (DRONE航拍)</td><td>K17 (POV微距)</td><td>K18 (STG舞台)</td><td>K19 (LGT燈光)</td>
+            <td>K20 (LED大屏)</td><td>K21 (HOST主持)</td><td>K22 (GUEST來賓)</td><td>K23 (FLOOR場控)</td>
+          </tr>
+          <tr class="hi-b">
+            <td><strong>U4 (#4)</strong></td><td>Pin 10 接 U3.9 ➔ Pin 9 接 U5.10</td>
+            <td><strong>K24 (ALL全體發)</strong></td><td><strong>K25 (GRP1攝影)</strong></td><td><strong>K26 (GRP2技術)</strong></td><td><strong>K27 (GRP3舞台)</strong></td>
+            <td>K28 (IFB1耳返)</td><td>K29 (IFB2耳返)</td><td><strong>K30 (MULTI同發)</strong></td><td><strong>K31 (MUTE禁聽)</strong></td>
+          </tr>
+          <tr class="hi-y">
+            <td><strong>U5 (#5)</strong></td><td>Pin 10 接 U4.9 ➔ Pin 9 接 U6.10</td>
+            <td><strong>K32 (CLR清空)</strong></td><td>K33 (SPL1拆分1)</td><td>K34 (SPL2拆分2)</td><td>K35 (DUCK閃避)</td>
+            <td><strong>E1 按壓 S2</strong><br>(切內建小喇叭)</td><td><strong>E2 按壓 S2</strong><br>(切PGM/自聽)</td><td><strong>ENC3 按壓 S2</strong><br>(確認/輸入字元)</td><td><strong>導覽鍵 [▲ 上]</strong></td>
+          </tr>
+          <tr class="hi-g">
+            <td><strong>U6 (#6 末片)</strong></td><td>Pin 10 接 U5.9 ➔ <strong>Pin 9 接 ESP G21</strong></td>
+            <td><strong>導覽鍵 [▼ 下]</strong></td><td><strong>導覽鍵 [◀ 左]</strong></td><td><strong>導覽鍵 [▶ 右]</strong></td><td><strong>導覽鍵 [⏎ 進入]</strong></td>
+            <td><strong>導覽鍵 [⎋ 離開]</strong></td>
+            <td class="hi-r"><strong>🕹️ 撥桿上扳 LATCH</strong><br>(持續發話自鎖)</td>
+            <td class="hi-r"><strong>🕹️ 撥桿下壓 PTT</strong><br>(彈回瞬時發話)</td>
+            <td><strong>🦶 背板腳踏 PTT</strong><br>(6.35mm 母座)</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="font-size:11px;margin-top:5px;color:#0f172a">
+        ★ <strong>三段式發話撥桿開關 <code>(ON)-OFF-ON</code> 接線法</strong>：購買單刀雙擲 3 段式搖頭開關（一邊自鎖、中間 OFF、一邊自動彈回），中間公共腳 <code>COM</code> 接 <code>GND</code>，上扳腳接 <code>U6.F (Pin 4)</code>，下壓彈回腳接 <code>U6.G (Pin 5)</code>。當撥桿在中間位置時 <code>U6.F==1 & U6.G==1</code>，韌體即判定為 <strong>強制麥克風靜音 (MUTE)</strong>！
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="box">
+        <div class="box-h">2B. 單顆 MCP23017-E/SP (I2C 0x20 · G8/G9) 16 腳完整分配表</div>
+        <table class="t">
+          <thead><tr><th>Port A 腳位</th><th>連接目標 (螢幕 CS 與復位)</th><th>Port B 腳位</th><th>連接目標 (音訊前端與指示燈)</th></tr></thead>
+          <tbody>
+            <tr><td><code>GPA0 (Pin 21)</code></td><td><strong>LCD #1 CS1</strong> (Pod 1 核心組)</td><td><code>GPB0 (Pin 1)</code></td><td><strong>4.0" 大屏背光 BL</strong> (經 2N7002 NMOS)</td></tr>
+            <tr><td><code>GPA1 (Pin 22)</code></td><td><strong>LCD #2 CS2</strong> (Pod 2 攝影群 A)</td><td><code>GPB1 (Pin 2)</code></td><td><strong>機箱頂部 On-Air 發話紅燈</strong></td></tr>
+            <tr><td><code>GPA2 (Pin 23)</code></td><td><strong>LCD #3 CS3</strong> (Pod 3 攝影群 B)</td><td><code>GPB2 (Pin 3)</code></td><td><strong>來電呼叫蜂鳴器 Call Buzzer</strong></td></tr>
+            <tr><td><code>GPA3 (Pin 24)</code></td><td><strong>LCD #4 CS4</strong> (Pod 4 舞台燈光)</td><td class="hi-r"><code>GPB3 (Pin 4)</code></td><td><strong>XLR +48V 幻象電源啟閉控制</strong></td></tr>
+            <tr><td><code>GPA4 (Pin 25)</code></td><td><strong>LCD #5 CS5</strong> (Pod 5 群組群發)</td><td class="hi-y"><code>GPB4 (Pin 5)</code></td><td><strong>XLR +5V 偏壓供電切換 (OFF/5V/48V)</strong></td></tr>
+            <tr><td><code>GPA5 (Pin 26)</code></td><td><strong>LCD #6 CS6</strong> (Pod 6 同發/拆分)</td><td class="hi-b"><code>GPB5 (Pin 6)</code></td><td><strong>6.35mm MIC / LINE-IN (-20dB Pad) 切換</strong></td></tr>
+            <tr class="hi-b"><td><code>GPA6 (Pin 27)</code></td><td><strong>4.0" ST7796S Config 大屏 CS_BIG</strong></td><td><code>GPB6 (Pin 7)</code></td><td>預留輸出 1 (可接外部攝影機 Tally 光耦)</td></tr>
+            <tr class="hi-g"><td><code>GPA7 (Pin 28)</code></td><td><strong>全部 7 塊彩屏共用 RES 硬體復位</strong></td><td><code>GPB7 (Pin 8)</code></td><td>預留輸出 2</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box">
+        <div class="box-h">2C. 7 塊彩屏 (SPI3) 匯流排與電源接線規範</div>
+        <table class="t">
+          <thead><tr><th>彩屏焊盤名稱</th><th>連接位置與施工注意事項</th></tr></thead>
+          <tbody>
+            <tr><td><code>GND / VCC / BLK</code></td><td>接獨立 <strong>5V➔3.3V/2A DC-DC 降壓模組</strong>（約 380mA，勿從 ESP32 板載 3V3 拉電）</td></tr>
+            <tr><td><code>SCL (SPI3 SCLK)</code></td><td>接 <strong>ESP32 GPIO 2</strong>（主幹分支處串聯 <code>33Ω</code> 阻尼電阻，時脈設 26MHz）</td></tr>
+            <tr><td><code>SDA (SPI3 MOSI)</code></td><td>接 <strong>ESP32 GPIO 1</strong>（主幹分支處串聯 <code>33Ω</code> 阻尼電阻）</td></tr>
+            <tr><td><code>DC (資料/命令)</code></td><td>7 塊螢幕並聯接 <strong>ESP32 GPIO 42</strong></td></tr>
+            <tr><td><code>RES (硬體復位)</code></td><td>7 塊螢幕並聯接 <strong>MCP23017 GPA7 (Pin 28)</strong></td></tr>
+            <tr><td><code>CS (片選)</code></td><td><code>2.25" #1–#6</code> 接 <code>GPA0–GPA5</code>；<code>4.0" 大屏</code> 接 <code>GPA6</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="sheet-ftr">
+    <span>專案：ESP32-S3 Standalone VBAN Intercom & Router (36-Key)</span>
+    <span>6×74HC165 (48/48 滿載) + 1×MCP23017 (14/16 已用)</span>
+    <span>PAGE 2 / 5</span>
+  </div>
+</section>
+
+<!-- ==================== SHEET 3 / 5：雙機通用 · 四合一音訊前端 (XLR 5V/48V + 6.35mm Mic/Line + 3.5mm + 機載MEMS + 1W小喇叭) ==================== -->
+<section class="sheet">
+  <div>
+    <div class="sheet-hdr">
+      <div>
+        <div class="sheet-title">圖紙 3/5：【雙機通用 · 音訊工程專頁】WM8960 四合一麥克風前端 (XLR 5V/48V + 6.35mm Mic/Line) + 0ms 自聽 + 1W 小喇叭</div>
+        <div class="sheet-sub">同時適用於「80 鍵主導播台 v2」與「36 鍵獨立 VBAN Intercom 主站」· 內建 0.0ms 硬體類比 Sidetone 自聽與發話自動切斷小喇叭防嘯叫</div>
+      </div>
+      <div class="sheet-tag">SHEET 3 OF 5 · PRO AUDIO FRONT-END & WM8960</div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:10px">
+      <div class="box">
+        <div class="box-h">3A. 四合一輸入接口 (Neutrik XLR+6.35mm Combo 座 + 3.5mm + 機載 MEMS) 逐針接線表</div>
+        <table class="t">
+          <thead><tr><th>輸入源</th><th>插座與針腳定義</th><th>供電模式與保護元件</th><th>接入 WM8960 目標腳</th></tr></thead>
+          <tbody>
+            <tr class="hi-g">
+              <td><strong>MIC 1<br>3.5mm 耳麥</strong></td>
+              <td>3.5mm TRS/TRRS 母座<br>Tip/Sleeve=Mic, GND</td>
+              <td>由 <code>WM8960 MICBIAS (~2.5V)</code> 經 <code>2.2kΩ</code> 提供駐極體偏壓，串 <code>1µF</code> 隔直電容</td>
+              <td><strong>LINPUT1</strong><br>(單端麥克風輸入 1)</td>
+            </tr>
+            <tr class="hi-r">
+              <td><strong>MIC 2<br>XLR 平衡口</strong><br>(Combo 外圈)</td>
+              <td>Pin 1 = 機殼地 GND<br>Pin 2 = Hot (+)<br>Pin 3 = Cold (-)</td>
+              <td><strong>三模供電 (OFF / +5V / +48V)</strong>：<br>• <strong>+48V 模式</strong>：5V➔48V 升壓經配對 <strong>6.81kΩ (0.1%)×2</strong> 送入 Pin 2 & Pin 3<br>• <strong>+5V 模式</strong>：經繼電器切換為 LC 濾波 5V (串 2.2kΩ) 供會議鵝頸麥<br>• <strong>隔直保護</strong>：後級必串 <strong>22µF/63V 電解電容×2 + 1N4148 鉗位二極體</strong> 進 <code>INA217/THAT1510</code> 平衡轉單端前級</td>
+              <td><strong>LINPUT2</strong><br>(經平衡前級放大後輸入)</td>
+            </tr>
+            <tr class="hi-b">
+              <td><strong>IN 3<br>6.35mm TRS</strong><br>(Combo 中心孔)</td>
+              <td>Tip = Left / Hot<br>Ring = Right / Cold<br>Sleeve = GND</td>
+              <td><strong>★ 天然安全隔離：+48V/+5V 只送外圈 XLR，中心 6.35mm 孔完全不帶高壓！</strong><br>• <strong>MIC 模式</strong>：直通前級 + 開啟 WM8960 <code>+25dB</code> PGA 高增益（接 6.35mm 動圈麥）<br>• <strong>LINE-IN 模式</strong>：繼電器投入 <strong>-20dB 電阻衰減網 (10kΩ + 1.1kΩ)</strong> + PGA 設 <code>0dB</code>（接調音台/電腦）</td>
+              <td><strong>LINPUT2 / RINPUT2</strong><br>(支援單聲道 Mic 或立體聲 Line-In)</td>
+            </tr>
+            <tr class="hi-y">
+              <td><strong>MIC 4<br>機載 MEMS</strong></td>
+              <td>面板內建類比矽麥<br>(VCC / GND / OUT)</td>
+              <td>接 3.3V 低雜訊電源（100Ω + 10µF RC 退耦），輸出串 <code>1µF</code> 電容；<strong>務必買類比輸出型 MEMS</strong></td>
+              <td><strong>LINPUT3</strong><br>(免戴耳麥桌面對講)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box">
+        <div class="box-h">3B. WM8960 雙機腳位對照、0.0ms 零延遲類比自聽 & 1W 小喇叭防嘯叫機制</div>
+        <table class="t" style="margin-bottom:8px">
+          <thead><tr><th>WM8960 訊號</th><th>在「80 鍵主導播台 v2」接哪支腳</th><th>在「36 鍵 Intercom 主站」接哪支腳</th><th>功能說明</th></tr></thead>
+          <tbody>
+            <tr><td><code>BCLK (位元時脈)</code></td><td><strong>ESP32 GPIO 2</strong> (J3-5)</td><td><strong>ESP32 GPIO 4</strong> (J1-4)</td><td>I2S0 48kHz 位元時脈 (內部 PLL 倍頻免 MCLK)</td></tr>
+            <tr><td><code>LRCK / WS</code></td><td><strong>ESP32 GPIO 21</strong> (J3-18)</td><td><strong>ESP32 GPIO 5</strong> (J1-5)</td><td>I2S0 左右聲道時脈</td></tr>
+            <tr><td><code>DACDAT (播放)</code></td><td><strong>ESP32 GPIO 38</strong> (J3-10)</td><td><strong>ESP32 GPIO 38</strong> (J3-10)</td><td>ESP32 送出的遠端 VBAN 混音音訊</td></tr>
+            <tr><td><code>ADCDAT (錄音)</code></td><td><strong>ESP32 GPIO 39</strong> (J3-9)</td><td><strong>ESP32 GPIO 39</strong> (J3-9)</td><td>本機麥克風數位化送入 ESP32 (畫 VU 表 + 打出 VBAN)</td></tr>
+            <tr><td><code>SDA / SCL</code></td><td><strong>GPIO 8 / GPIO 9</strong> (I2C <code>0x1A</code>)</td><td><strong>GPIO 8 / GPIO 9</strong> (I2C <code>0x1A</code>)</td><td>控制 PGA 增益、輸入源切換、0ms 自聽、喇叭靜音</td></tr>
+            <tr class="hi-r"><td><code>XLR 48V / 5V 控制</code></td><td><strong>MCP#2 (0x21) GPA4 / GPA5</strong></td><td><strong>MCP#1 (0x20) GPB3 / GPB4</strong></td><td>网页與 4.0" 螢幕一鍵切換 XLR <code>OFF / +5V / +48V</code></td></tr>
+            <tr class="hi-b"><td><code>6.35mm Mic/Line</code></td><td><strong>MCP#2 (0x21) GPA6</strong></td><td><strong>MCP#1 (0x20) GPB5</strong></td><td>切換 6.35mm <code>MIC 高增益</code> 或 <code>LINE-IN (-20dB Pad)</code></td></tr>
+          </tbody>
+        </table>
+
+        <div style="border:1.5px solid #0f172a;padding:6px 8px;border-radius:4px;font-size:11px;background:#f8fafc">
+          <strong>★ 兩大廣電級核心音訊設計（寫入韌體初始化流程）：</strong><br>
+          1. <strong>【🎧 0.0 ms 零延遲即時聽自己 (Hardware Analog Sidetone)】</strong>：開啟 WM8960 暫存器 <code>R47 (Left Output Mixer)</code> 與 <code>R48 (Right Output Mixer)</code> 的 <code>LI2LO / RI2RO</code> 位元，讓本機麥克風經過 PGA 放大後，<strong>直接在晶片內部類比混入耳機 <code>HP_L / HP_R</code>（延遲 = 0.0 ms，無數位回音）</strong>；當撥桿切回中間 <code>MUTE</code> 時同步關閉該位元。<br>
+          2. <strong>【🔊 面板內建 8Ω/1W 小喇叭 + 發話自動消音防嘯叫 (Auto Speaker Cut)】</strong>：小喇叭接 <code>WM8960 SPK_LP / SPK_LN</code>。一來類比自聽絕不送進小喇叭；二來<strong>只要壓下發話撥桿 (PTT / Latch) 打開麥克風，韌體立刻將 <code>R40/R41 SPKVOL</code> 設為靜音 (或 -20dB Dim)</strong>，放開撥桿瞬間恢復，徹底防止面板小喇叭與麥克風產生刺耳回授嘯叫！
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="sheet-ftr">
+    <span>雙機通用音訊前端圖紙：Neutrik Combo (XLR 5V/48V + 6.35mm Mic/Line) + 3.5mm + MEMS + WM8960</span>
+    <span>I2C Addr = 0x1A</span>
+    <span>PAGE 3 / 5</span>
+  </div>
+</section>
+
+<!-- ==================== SHEET 4 / 5：80 鍵主導播切換台 v2 升級專頁 ==================== -->
+<section class="sheet">
+  <div>
+    <div class="sheet-hdr">
+      <div>
+        <div class="sheet-title">圖紙 4/5：【80 鍵主導播切換台 v2 升級專頁】新增 4.0" Config 大屏、導覽鍵、I2S 音訊與第 2 顆 MCP23017 接線表</div>
+        <div class="sheet-sub">在既有 80 鍵 + 10×EC11 + 15×2.25" 彩屏基礎上，零增加主控腳位完成升級（74HC165 擴為 15 片 U1–U15；新增 MCP23017 #2 @ 0x21）</div>
+      </div>
+      <div class="sheet-tag">SHEET 4 OF 5 · 80-KEY SWITCHER V2 UPGRADE</div>
+    </div>
+
+    <div class="grid-2">
+      <div class="box">
+        <div class="box-h">4A. 80 鍵主導播台 v1 ➔ v2 主控腳位調整與第 2 顆 MCP23017 (#2 @ 0x21) 接線表</div>
+        <table class="t" style="margin-bottom:8px">
+          <thead><tr><th>ESP32-S3 腳位</th><th>v1 原本用途</th><th>v2 升級後用途</th><th>原本外設移去哪裡？</th></tr></thead>
+          <tbody>
+            <tr class="hi-g"><td><code>GPIO 2 (J3-5)</code></td><td>唯一空腳</td><td><strong>I2S0 BCLK</strong> (接 WM8960)</td><td>—</td></tr>
+            <tr class="hi-g"><td><code>GPIO 21 (J3-18)</code></td><td>W5500 RST</td><td><strong>I2S0 LRCK / WS</strong> (接 WM8960)</td><td>W5500 RST 改接 <strong>MCP#2 GPA2</strong></td></tr>
+            <tr class="hi-g"><td><code>GPIO 38 (J3-10)</code></td><td>EC11 #4 (E4) A 相</td><td><strong>I2S0 DOUT</strong> (接 WM8960 DACDAT)</td><td>E4 A 相改接 <strong>74HC165 U14.H</strong> (2kHz 掃描)</td></tr>
+            <tr class="hi-g"><td><code>GPIO 39 (J3-9)</code></td><td>EC11 #4 (E4) B 相</td><td><strong>I2S0 DIN</strong> (接 WM8960 ADCDAT)</td><td>E4 B 相改接 <strong>74HC165 U15.A</strong> (2kHz 掃描)</td></tr>
+          </tbody>
+        </table>
+
+        <table class="t">
+          <thead><tr><th>MCP23017 #2 (0x21 · A0接3V3)</th><th>連接目標與功能說明（與 0x20 共用 G8 SDA / G9 SCL）</th></tr></thead>
+          <tbody>
+            <tr class="hi-b"><td><code>GPA0 (Pin 21)</code></td><td><strong>4.0" 480×320 ST7796S Config 大螢幕 CS</strong>（SDA/SCL/DC 與 15 小屏共用 G11/G12/G47）</td></tr>
+            <tr class="hi-b"><td><code>GPA1 (Pin 22)</code></td><td><strong>4.0" Config 大螢幕 RST 復位腳</strong></td></tr>
+            <tr><td><code>GPA2 (Pin 23)</code></td><td><strong>W5500 有線網口 RST 復位腳</strong>（從 G21 移過來，騰出 G21 給 I2S LRCK）</td></tr>
+            <tr><td><code>GPA3 (Pin 24)</code></td><td><strong>4.0" Config 大螢幕 BL 背光開關</strong>（經 2N7002 NMOS）</td></tr>
+            <tr class="hi-r"><td><code>GPA4 (Pin 25)</code></td><td><strong>XLR +48V 幻象電源啟閉控制</strong>（驅動 5V➔48V 升壓模組）</td></tr>
+            <tr class="hi-y"><td><code>GPA5 (Pin 26)</code></td><td><strong>XLR +5V 偏壓供電模式控制</strong>（切換 XLR <code>OFF / +5V / +48V</code>）</td></tr>
+            <tr class="hi-p"><td><code>GPA6 (Pin 27)</code></td><td><strong>6.35mm TRS MIC / LINE-IN (-20dB Pad) 模式切換</strong></td></tr>
+            <tr><td><code>GPA7, GPB0–GPB7</code></td><td><strong>共 9 路預留 GPIO 輸出</strong>（可接外部攝影機硬體 Tally 光耦）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box">
+        <div class="box-h">4B. 80 鍵主導播台 74HC165 擴充段 (U13–U15) 逐腳接線表（新增 ENC11 與 6 顆 Config 導覽鍵）</div>
+        <table class="t" style="margin-bottom:8px">
+          <thead><tr><th>晶片與腳位</th><th>輸入信號定義（U1–U12 維持原 K0–K89 與 E5–E7 AB 不變）</th></tr></thead>
+          <tbody>
+            <tr><td><code>U13 Pin 11–14, 3–4 (A–F)</code></td><td>維持原設計：<code>E8 (PIP縮放) A/B</code>、<code>E9 (DSK透明) A/B</code>、<code>E10 (轉場秒) A/B</code></td></tr>
+            <tr class="hi-y"><td><code>U13 Pin 5–6 (G / H)</code></td><td><strong>新增 ENC11 (Config 專屬第 11 顆旋鈕) A 相 / B 相</strong>（控制 4.0" 大屏選單與虛擬鍵盤游標）</td></tr>
+            <tr class="hi-y"><td><code>U14 Pin 11 (A)</code></td><td><strong>新增 ENC11 按壓開關 S2</strong>（虛擬鍵盤輸入字元 / 選單確認）</td></tr>
+            <tr class="hi-b"><td><code>U14 Pin 12–14, 3 (B / C / D / E)</code></td><td><strong>新增 Config 實體方向鍵：<code>[▲ 上]</code>、<code>[▼ 下]</code>、<code>[◀ 左]</code>、<code>[▶ 右]</code></strong></td></tr>
+            <tr class="hi-g"><td><code>U14 Pin 4–5 (F / G)</code></td><td><strong>新增 Config 實體確認與返回鍵：<code>[⏎ 進入 (ENTER)]</code>、<code>[⎋ 離開 (ESC)]</code></strong></td></tr>
+            <tr><td><code>U14 Pin 6 (H)</code> & <code>U15 Pin 11 (A)</code></td><td><strong>EC11 #4 (E4 VTR音) A 相與 B 相</strong>（由 2kHz 定時器灰碼狀態機解碼）</td></tr>
+            <tr><td><code>U15 Pin 12–14, 3–6 (B–H)</code></td><td><strong>7 路預留純輸入腳</strong>（可接三段式發話撥桿或腳踏 PTT 開關！末片 U15 Pin 9 接 ESP32 <code>GPIO 42</code>）</td></tr>
+          </tbody>
+        </table>
+
+        <div style="border:1.5px solid #0f172a;padding:6px 8px;border-radius:4px;font-size:11px;background:#f8fafc">
+          <strong>★ 80 鍵主導播台 v2 擴展接口總數統計：</strong><br>
+          • <strong>輸入擴展</strong>：<code>15 片 74HC165 × 8 = 120 路輸入</code>（僅用 <code>G40/41/42</code> 3 支腳；已用 113 路，預留 7 路）。<br>
+          • <strong>輸出擴展</strong>：<code>2 顆 MCP23017 × 16 = 32 路輸出</code>（共用 I2C <code>G8/G9</code>；#1 滿載 16 路管 15 小屏，#2 用 7 路管大屏與音訊前端，預留 9 路）。<br>
+          • <strong>總計擴展出 <code>152 個接口</code></strong>！
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="sheet-ftr">
+    <span>專案：ESP32-S3 80-Key Switcher v2 Upgrade</span>
+    <span>15×74HC165 (120 In) + 2×MCP23017 (32 Out) = 152 Expanded IOs</span>
+    <span>PAGE 4 / 5</span>
+  </div>
+</section>
+
+<!-- ==================== SHEET 5 / 5：VBAN 名稱同步、內建 Web UI (固定 IP / NVS) 與雙機完整 BOM 表 ==================== -->
+<section class="sheet">
+  <div>
+    <div class="sheet-hdr">
+      <div>
+        <div class="sheet-title">圖紙 5/5：【雙機完整採購清單 (BOM) ＋ VBAN 裝置名稱同步與內建 Web UI (固定 IP / NVS) 規範】</div>
+        <div class="sheet-sub">涵蓋 VBAN 自動改名上屏機制、ESP32-S3 HTTP Port 80 設定後台項目、以及「80 鍵導播台 v2」與「36 鍵 Intercom 主站」共用物料清單</div>
+      </div>
+      <div class="sheet-tag">SHEET 5 OF 5 · WEB UI, VBAN & MASTER BOM</div>
+    </div>
+
+    <div class="grid-2">
+      <div class="box">
+        <div class="box-h">5A. VBAN 裝置名稱自動傳輸上屏 & 內建 Web UI 設定後台 (HTTP 80 + NVS)</div>
+        <table class="t" style="margin-bottom:8px">
+          <thead><tr><th>功能模組</th><th>運作機制與儲存規範（兩台設備皆內建）</th></tr></thead>
+          <tbody>
+            <tr class="hi-y">
+              <td><strong>🏷️ VBAN 名稱自動上屏</strong></td>
+              <td>1. <strong>封包標頭 16B <code>streamname</code></strong>：每個 VBAN UDP 音訊包 (Byte 8–23) 原生攜帶串流名，100% 相容電腦 Voicemeeter。<br>2. <strong><code>VBAN-TEXT/SERVICE</code> + mDNS 中文名廣播</strong>：ESP32 之間每 2 秒廣播 JSON 身分卡（含完整中文工位名如 <code>"一號機-搖臂"</code>）。遠端一在網頁改名並儲存，本機 <code>2.25"</code> 與 <code>4.0"</code> 螢幕自動更新標籤！</td>
+            </tr>
+            <tr class="hi-b">
+              <td><strong>🌐 內建 Web UI 後台<br>(與 4.0" 屏 100% 同步)</strong></td>
+              <td>瀏覽器連入裝置 IP 或 <code>http://switcher.local</code> / <code>http://intercom-main.local</code> 即可開啟。<strong>所有在 4.0" Config 螢幕能改的設定，網頁 100% 都能改</strong>，按下儲存立即寫入 <strong>ESP32 NVS 快閃記憶體（斷電重開機不消失）</strong>並透過 WebSocket 即時刷新螢幕！</td>
+            </tr>
+            <tr class="hi-g">
+              <td><strong>📌 固定 IP (Static IP)<br>& 完整可設參數清單</strong></td>
+              <td>• <strong>有線 W5500 & 無線 Wi-Fi</strong>：各自獨立支援 <strong><code>固定 IP (Static IP / 子網路遮罩 Subnet / 預設閘道 Gateway / DNS)</code></strong> 或 <code>DHCP</code><br>• <strong>裝置與路由</strong>：本機中文名稱、VBAN <code>streamname</code>、Companion IP:16622、36 鍵工位目標 IP、8ch 拆分規則 (Split 1–6)<br>• <strong>音訊與備份</strong>：網頁切換 XLR <code>OFF/5V/48V</code>、6.35mm <code>Mic/Line-In</code>、PGA 增益、0ms 自聽、匯出/匯入 <code>.json</code> 設定檔、Web OTA 更新</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box">
+        <div class="box-h">5B. 雙機採購清單 (Master BOM · 80 鍵導播台 v2 vs 36 鍵 Intercom 主站)</div>
+        <table class="t">
+          <thead>
+            <tr><th>物料名稱與推薦規格</th><th>80鍵導播台 v2</th><th>36鍵 Intercom</th><th>關鍵採購備註</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>主控板</strong>：<code>ESP32-S3-DevKitC-1 (N16R8)</code></td><td>1 塊</td><td>1 塊</td><td>必選 16MB Flash + 8MB Octal PSRAM</td></tr>
+            <tr><td><strong>有線網口</strong>：<code>W5500</code> SPI 模組 (+選配 5V PoE 分離器)</td><td>1 塊</td><td>1 塊</td><td>36鍵版獨佔 SPI2，加 PoE 可單網線供電</td></tr>
+            <tr><td><strong>小彩屏</strong>：中景園 <code>2.25" 76×284 ST7789P</code></td><td><strong>15 塊</strong> (備17)</td><td><strong>6 塊</strong> (備8)</td><td>選「排針不焊接」版，每組 2×3 Pod 配 1 塊</td></tr>
+            <tr class="hi-b"><td><strong>Config 大屏</strong>：<code>4.0" 480×320 ST7796S</code> SPI (無觸控)</td><td><strong>1 塊</strong></td><td><strong>1 塊</strong></td><td>顯示 Mic VU 音量表、增益表、路由與虛擬鍵盤</td></tr>
+            <tr class="hi-g"><td><strong>音訊編解碼</strong>：<code>WM8960</code> 模組 (含 0ms 自聽 + 1W 功放)</td><td><strong>1 塊</strong></td><td><strong>1 塊</strong></td><td>PLL 取自 BCLK 免 MCLK，I2C 位址 0x1A</td></tr>
+            <tr class="hi-r"><td><strong>四合一音訊前端</strong>：<code>Neutrik NCJ6FI-S</code> (XLR+6.35mm Combo 座) + <code>5V➔48V</code> 升壓 + <code>INA217</code> 前級 + 3.5mm 座 + <strong>類比 MEMS 矽麥</strong></td><td><strong>1 套</strong></td><td><strong>1 套</strong></td><td>支援 XLR (OFF/5V/48V) + 6.35mm (Mic/Line -20dB Pad) + 3.5mm + 機載 MEMS</td></tr>
+            <tr class="hi-y"><td><strong>內建小喇叭 & 三段發話撥桿</strong>：<code>8Ω/1W–2W</code> 腔體喇叭 + <code>(ON)-OFF-ON</code> 單邊彈回搖頭開關</td><td>選配</td><td><strong>1 顆 + 1 支</strong></td><td>小喇叭直連 WM8960 SPK；撥桿接 U6.F/G</td></tr>
+            <tr><td><strong>移位暫存器</strong>：<code>SN74HC165D</code> + <code>A103J</code> 10kΩ 9腳排阻</td><td><strong>15 片 + 15 條</strong></td><td><strong>6 片 + 6 條</strong></td><td>掃描全部機械鍵、導覽鍵與撥桿</td></tr>
+            <tr><td><strong>I2C 擴充 IC</strong>：<code>MCP23017-E/SP</code> (DIP-28 / SOIC-28)</td><td><strong>2 顆</strong> (0x20/21)</td><td><strong>1 顆</strong> (0x20)</td><td>管全部彩屏 CS/RES 與 XLR 48V/5V/Pad 繼電器</td></tr>
+            <tr><td><strong>機械軸 + SK6812 MINI-E 燈珠 + 1U 鍵帽 + 導覽鍵</strong></td><td>80 軸燈 + 6 導覽</td><td>36 軸燈 + 6 導覽</td><td>靜音紅軸/矮軸；SK6812 反貼燈珠</td></tr>
+            <tr><td><strong>旋鈕與推桿</strong>：5 腳 <code>EC11</code> 編碼器 / <code>B10K</code> T-Bar / 手輪</td><td>11×EC11+TBar+Jog</td><td><strong>3× EC11</strong></td><td>36鍵版 3 顆旋鈕直連硬體 PCNT0–2</td></tr>
+            <tr><td><strong>電源供應</strong>：5V 穩壓電源 + <code>MP1584 5V➔3.3V/2A</code> 降壓</td><td>5V/6A + 3.3V/2A</td><td>5V/3A + 3.3V/2A</td><td>燈珠走 5V；彩屏群走獨立 3.3V/2A 降壓</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="sheet-ftr">
+    <span>雙機完整工程圖冊 (Sheet 1–5) · 支援直接列印 A4 橫式紙本或儲存 PDF</span>
+    <span>ESP32-S3 Switcher v2 & VBAN Intercom Station</span>
+    <span>PAGE 5 / 5</span>
+  </div>
+</section>
+
+</body>
+</html>

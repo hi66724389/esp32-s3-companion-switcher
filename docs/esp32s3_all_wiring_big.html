@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ESP32-S3 導播切換台 · 全部接線總電路圖（v2 單頁大圖）</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f1f5f9; color: #0f172a; font-family: "Segoe UI","Microsoft JhengHei",sans-serif; }
+  header { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #cbd5e1; padding: 10px 16px; }
+  h1 { font-size: 16px; margin: 0 0 6px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1.5px solid; background: #fff; cursor: pointer; user-select: none; }
+  .chip.off { opacity: .35; }
+  .btn { font-size: 12px; padding: 3px 10px; border-radius: 6px; border: 1px solid #94a3b8; background: #fff; cursor: pointer; }
+  .btn.on { background: #0f172a; color: #fff; }
+  .sep { width: 1px; height: 18px; background: #cbd5e1; margin: 0 6px; }
+  #wrap { overflow: auto; padding: 12px; }
+  svg { background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; display: block; width: 100%; height: auto; }
+  .w, .lb { transition: opacity .15s; }
+  .hide { opacity: .06; }
+  @media print { header { position: static; } #wrap { padding: 0; } @page { size: A3 landscape; margin: 6mm; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>ESP32-S3 導播切換台（80 鍵 + 11×EC11 + 15×2.25″ 彩屏 + 4.0″ Config 大屏 + 耳機/麥克風/VBAN）· 全部接線總電路圖 v2</h1>
+  <div class="bar" id="legend"></div>
+  <div class="bar" style="margin-top:6px">
+    <span style="font-size:12px;color:#475569">點擊色塊可單獨顯示該類線路（再點一次取消）。縮放：</span>
+    <button class="btn on" data-z="100">100%</button>
+    <button class="btn" data-z="140">140%</button>
+    <button class="btn" data-z="180">180%</button>
+    <span class="sep"></span>
+    <button class="btn" onclick="window.print()">列印 / 存 PDF</button>
+  </div>
+</header>
+<div id="wrap">
+<svg id="s" viewBox="0 90 2600 1500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#d97706"/></marker>
+    <marker id="arA" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4f46e5"/></marker>
+  </defs>
+</svg>
+</div>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const S = document.getElementById('s');
+const C = {
+  chain:'#d97706', led:'#9333ea', enc:'#16a34a', analog:'#db2777', spi:'#2563eb',
+  lcdcs:'#7c3aed', i2c:'#0891b2', eth:'#0d9488', usb:'#64748b', power:'#dc2626', audio:'#4f46e5'
+};
+const NAMES = {
+  chain:'74HC165 掃描鏈 (G40/41/42)', led:'SK6812 燈鏈 (G48)', enc:'旋鈕 / Jog (直連)', analog:'T-Bar 類比 (G1)',
+  spi:'SPI2 共享 (G11/12 + G47 DC)', lcdcs:'LCD CS / RES (MCP 輸出)', i2c:'I2C (G8/G9)',
+  eth:'W5500 網口 (G10/13/14)', usb:'USB-C 直連 (G19/20)', audio:'I2S 音訊 (G2/21/38/39)', power:'電源 / 地'
+};
+
+function e(t, a = {}, txt) {
+  const n = document.createElementNS(NS, t);
+  for (const k in a) n.setAttribute(k, a[k]);
+  if (txt != null) n.textContent = txt;
+  S.appendChild(n); return n;
+}
+function T(x, y, txt, o = {}) {
+  const a = { x, y, 'font-size': o.s || 12, 'font-weight': o.b ? 700 : 400, fill: o.c || '#1e293b', 'text-anchor': o.a || 'start' };
+  if (o.net) { a['data-net'] = o.net; a.class = 'lb'; }
+  return e('text', a, txt);
+}
+function box(x, y, w, h, title, lines, col, fs = 11.5) {
+  e('rect', { x, y, width: w, height: h, rx: 8, fill: col + '18', stroke: col, 'stroke-width': 1.6 });
+  T(x + 10, y + 19, title, { b: 1, s: 13, c: col });
+  lines.forEach((l, i) => T(x + 10, y + 37 + i * (fs + 4.5), l, { s: fs, c: '#334155' }));
+}
+function W(pts, net, o = {}) {
+  const d = 'M' + pts.map(p => p.join(' ')).join(' L ');
+  e('path', { d, class: 'w', 'data-net': net, stroke: C[net], 'stroke-width': o.w || 2.4, fill: 'none',
+    'stroke-dasharray': o.dash || '', 'stroke-linejoin': 'round',
+    'marker-end': o.arrow ? (net === 'audio' ? 'url(#arA)' : 'url(#ar)') : '' });
+  if (o.lab) T(o.lab[0], o.lab[1], o.lab[2], { s: 11, c: C[net], a: o.lab[3] || 'middle', net });
+}
+function J(x, y, net) { e('circle', { cx: x, cy: y, r: 4, fill: C[net], class: 'w', 'data-net': net }); }
+function tag(x, y, w, txt, net) {
+  e('rect', { x, y, width: w, height: 18, rx: 4, fill: '#fff', stroke: C[net], 'stroke-width': 1.3, class: 'w', 'data-net': net });
+  T(x + w / 2, y + 13, txt, { a: 'middle', s: 9.5, c: C[net], net });
+}
+
+/* ================= ESP32-S3 本體 ================= */
+const EX = 1130, EW = 340;
+e('rect', { x: EX, y: 110, width: EW, height: 690, rx: 12, fill: '#e0f2fe', stroke: '#0369a1', 'stroke-width': 2.5 });
+T(EX + EW / 2, 134, 'ESP32-S3-DevKitC-1', { a: 'middle', b: 1, s: 16, c: '#0369a1' });
+T(EX + EW / 2, 152, '(N16R8 · 雙 Type-C)', { a: 'middle', s: 11, c: '#0369a1' });
+const L = [ // 左側腳位
+  [150,'G1 · ADC1_CH0','analog'],[184,'G4 · Jog A','enc'],[218,'G5 · Jog B','enc'],
+  [252,'G6 · E1-A','enc'],[286,'G7 · E1-B','enc'],[320,'G15 · E2-A','enc'],[354,'G16 · E2-B','enc'],
+  [388,'G17 · E3-A','enc'],[422,'G18 · E3-B','enc'],
+  [456,'G40 · CLK','chain'],[490,'G41 · SH/LD','chain'],[524,'G48 · LED DIN','led'],[558,'G42 · QH 讀入','chain']
+];
+L.forEach(([y, t, n]) => { e('circle', { cx: EX, cy: y, r: 5, fill: C[n] }); T(EX + 12, y + 4, t, { s: 11.5, b: 1 }); });
+const R = [ // 右側腳位
+  [150,'G11 · MOSI','spi'],[184,'G12 · SCLK','spi'],[218,'G47 · LCD DC','spi'],
+  [252,'G10 · W5500 CS','eth'],[286,'G13 · MISO','eth'],[320,'G14 · INT','eth'],
+  [388,'G8 · SDA','i2c'],[422,'G9 · SCL','i2c'],[456,'G20 · USB D+','usb'],[490,'G19 · USB D-','usb']
+];
+R.forEach(([y, t, n]) => { e('circle', { cx: EX + EW, cy: y, r: 5, fill: C[n] }); T(EX + EW - 12, y + 4, t, { s: 11.5, b: 1, a: 'end' }); });
+const B = [[1180,'G2','BCLK'],[1245,'G21','LRCK'],[1310,'G38','DOUT'],[1375,'G39','DIN']]; // 底側：I2S
+B.forEach(([x, g, f]) => { e('circle', { cx: x, cy: 800, r: 5, fill: C.audio }); T(x, 772, g, { a: 'middle', s: 11, b: 1 }); T(x, 786, f, { a: 'middle', s: 10.5 }); });
+['3V3 (J1-1/2) → 74HC165×15 · W5500 · MCP×2 · WM8960 數位 · T-Bar · 上拉',
+ '5V (J1-21) ← 外部 5V PSU',
+ 'GND 全部星形單點共地',
+ '禁用：G0 G3 G35–37 G45 G46（勿接外設）· G43/44 = UART0 除錯口保留'].forEach((s, i) => T(EX + EW / 2, 690 + i * 17, s, { a: 'middle', s: 10, c: '#0c4a6e' }));
+
+/* ================= 左側：類比 / 旋鈕 ================= */
+box(80, 120, 400, 48, 'T-Bar 推桿 B10K（ALPS RS6011）', ['1=GND · 2=Wiper→G1 · 3=3V3 · G1 對 GND 並 100nF'], C.analog);
+W([[480, 150], [EX, 150]], 'analog', { lab: [805, 144, 'G1 ← Wiper（ADC1_CH0）'] });
+
+box(80, 176, 400, 62, 'Jog 滾盤 LPD3806-100BM（KEY 90）', ['5V / GND 供電 · A、B 相（NPN 開漏）各 4.7kΩ 上拉到 3V3', '嚴禁上拉到 5V → 接 G4 / G5（PCNT0）'], C.enc);
+W([[480, 184], [EX, 184]], 'enc', { lab: [805, 178, 'G4 ← A 相'] });
+W([[480, 218], [EX, 218]], 'enc', { lab: [805, 212, 'G5 ← B 相'] });
+
+const ENC = [
+  ['EC11 #1 · E1 主音量 (KEY 80)', 'C→GND · S2→U11.A', 252, 286, 242, 'G6 ← A相 (PCNT1)', 'G7 ← B相'],
+  ['EC11 #2 · E2 主持麥 (KEY 81)', 'C→GND · S2→U11.B', 320, 354, 308, 'G15 ← A相 (PCNT2)', 'G16 ← B相'],
+  ['EC11 #3 · E3 來賓麥 (KEY 82)', 'C→GND · S2→U11.C', 388, 422, 376, 'G17 ← A相 (PCNT3)', 'G18 ← B相']
+];
+ENC.forEach(([t, l, ya, yb, by, la, lb]) => {
+  box(80, by, 400, 58, t, [l], C.enc);
+  W([[480, ya], [EX, ya]], 'enc', { lab: [805, ya - 6, la] });
+  W([[480, yb], [EX, yb]], 'enc', { lab: [805, yb - 6, lb] });
+});
+
+/* 74HC165 控制線 → 下方鏈（15 片） */
+W([[EX, 456], [44, 456], [44, 790], [1062, 790]], 'chain', { lab: [800, 450, 'G40 → CLK（U1–U15 Pin 2 並聯）'] });
+W([[EX, 490], [30, 490], [30, 812], [1078, 812]], 'chain', { lab: [800, 484, 'G41 → SH/LD（U1–U15 Pin 1 並聯）'] });
+
+/* LED 鏈 */
+box(80, 502, 400, 80, 'SK6812 MINI-E × 80（LED #0 – #79）', ['G48 → 串 330Ω → #0 DIN → … → #79（DOUT→DIN 串接）', '5V 由電源區供電 · 燈鏈首端並 470µF/10V', '補電點：#0、#35、#79（20AWG）'], C.led);
+W([[480, 524], [EX, 524]], 'led', { lab: [805, 518, 'G48 → 330Ω → DIN（RMT）'] });
+
+/* E4：改由掃描鏈解碼 */
+box(80, 596, 400, 62, 'EC11 #4 · E4 VTR 音 (KEY 83) — 已搬到掃描鏈', ['C→GND · S2→U11.D · A→U14.H · B→U15.A', '（2 kHz 掃描解碼，不再佔用 G38 / G39）'], C.enc);
+
+/* G42 QH 回讀 */
+W([[EX, 558], [1122, 558], [1122, 895], [1106, 895]], 'chain');
+T(1118, 760, 'U15 QH → G42', { a: 'end', s: 11, c: C.chain, net: 'chain' });
+
+/* ================= 74HC165 菊花鏈（15 片） ================= */
+e('rect', { x: 8, y: 740, width: 1106, height: 270, rx: 10, fill: 'none', stroke: C.chain, 'stroke-dasharray': '6 5', 'stroke-width': 1.5 });
+T(70, 764, '74HC165 × 15 菊花鏈（15×8 = 120 bit · 2 kHz 掃描 · 先移出的是 U15 的 H 腳）', { b: 1, s: 13, c: C.chain });
+const CL = ['K0–7','K8–15','K16–23','K24–31','K32–39','K40–47','K48–55','K56–63','K64–71','K72–79','S2 ×8','S2×2+AB×3','AB×3+ENC11','導覽×6+S2+E4A','E4B+空×7'];
+for (let i = 0; i < 15; i++) {
+  const x = 70 + 70 * i;
+  e('rect', { x, y: 860, width: 56, height: 70, rx: 5, fill: '#fef3c7', stroke: C.chain, 'stroke-width': 1.6 });
+  T(x + 28, 885, 'U' + (i + 1), { a: 'middle', b: 1, s: 14, c: '#92400e' });
+  T(x + 28, 902, '74HC165', { a: 'middle', s: 9, c: '#92400e' });
+  T(x + 28, 918, 'A–H 輸入', { a: 'middle', s: 9, c: '#92400e' });
+  T(x + 26, 948, CL[i], { a: 'middle', s: 8.5, c: '#334155' });
+  W([[x + 12, 790], [x + 12, 860]], 'chain', { w: 1.6 }); J(x + 12, 790, 'chain');
+  W([[x + 28, 812], [x + 28, 860]], 'chain', { w: 1.6 }); J(x + 28, 812, 'chain');
+  W([[x + 46, 930], [x + 46, 985]], 'power', { w: 1.6 }); J(x + 46, 985, 'power');
+  if (i < 14) W([[x + 56, 895], [x + 70, 895]], 'chain', { w: 2.4, arrow: true });
+}
+W([[70, 895], [58, 895], [58, 985]], 'power', { w: 1.6 });
+W([[54, 985], [1108, 985]], 'power', { w: 2 });
+T(70, 1002, 'GND：/CE (Pin 15) 全接地 · U1 SER (Pin 10) 接地 · 每片 Pin 8 GND；每片 VCC (Pin 16) 接 3V3 並就近 100nF', { s: 10.5, c: C.power, net: 'power' });
+T(70, 842, '資料串接：前級 QH (Pin 9) → 後級 SER (Pin 10)', { s: 11, c: C.chain, net: 'chain' });
+
+/* ================= 右側：W5500 / MCP#1 / USB / LCD ================= */
+const LX = 1900;
+e('rect', { x: LX, y: 110, width: 640, height: 210, rx: 8, fill: C.spi + '12', stroke: C.spi, 'stroke-width': 1.6 });
+T(LX + 10, 129, '15× 2.25″ ST7789P 76×284 彩屏（ZJY225S0800TG01）', { b: 1, s: 13, c: C.spi });
+const LCDS = ['GPA0 · Pod1 DSK1','GPA1 · Pod2 DSK2','GPA2 · Pod3 USER1','GPA3 · Pod4 PGM1','GPA4 · Pod5 PGM2',
+  'GPA5 · Pod6 PGM3','GPA6 · Pod7 PVW1','GPA7 · Pod8 PVW2','GPB0 · Pod9 PVW3','GPB1 · Pod10 USER2',
+  'GPB2 · Pod11 TRANS1','GPB3 · Pod12 TRANS2','GPB4 · Pod13 REPLAY','GPB5 · PodA E1–6','GPB6 · PodB E7–10'];
+LCDS.forEach((s, i) => {
+  const x = LX + 12 + (i % 5) * 124, y = 142 + Math.floor(i / 5) * 50;
+  e('rect', { x, y, width: 118, height: 44, rx: 5, fill: '#fff', stroke: C.lcdcs, 'stroke-width': 1.2 });
+  T(x + 6, y + 17, 'LCD #' + (i + 1) + ' · CS' + (i + 1), { s: 11, b: 1, c: C.lcdcs });
+  T(x + 6, y + 34, s, { s: 9.5, c: '#475569' });
+});
+T(LX + 10, 308, '共用：SDA←G11 · SCL←G12 · DC←G47 · RES←MCP#1 GPB7 · VCC/BLK←3.3V 降壓 · 每 2–3 片並 100nF', { s: 10.5, c: '#334155' });
+
+W([[EX + EW, 150], [LX, 150]], 'spi', { lab: [1700, 144, 'G11 MOSI（SDA）· 33Ω', 'start'] });
+W([[EX + EW, 184], [LX, 184]], 'spi', { lab: [1700, 178, 'G12 SCLK（SCL）· 33Ω', 'start'] });
+W([[EX + EW, 218], [LX, 218]], 'spi', { lab: [1700, 212, 'G47 DC（共用）', 'start'] });
+
+box(1560, 236, 280, 112, 'W5500 乙太網模組', ['CS←G10 · MISO→G13 · INT→G14', 'RST ← MCP#2 GPA2（原 G21）', 'MOSI/SCLK 與 LCD 並聯（上方分支）', '3V3 / GND（需 ≥200mA）· RJ45 齊平後背板'], C.eth, 11);
+W([[1620, 150], [1620, 236]], 'spi'); J(1620, 150, 'spi');
+W([[1660, 184], [1660, 236]], 'spi'); J(1660, 184, 'spi');
+T(1626, 232, 'MOSI', { s: 9.5, c: C.spi, net: 'spi' }); T(1666, 232, 'SCLK', { s: 9.5, c: C.spi, net: 'spi' });
+[[252,'G10 CS'],[286,'G13 MISO'],[320,'G14 INT']].forEach(([y, t]) =>
+  W([[EX + EW, y], [1560, y]], 'eth', { lab: [1515, y - 5, t] }));
+tag(1700, 352, 130, 'NET: W5500_RST ← MCP#2', 'lcdcs');
+
+box(1560, 378, 280, 62, 'MCP23017 #1（0x20 · 16/16 滿載）', ['A0–A2 接地 · RESET 10kΩ 上拉 · SDA/SCL 4.7kΩ 上拉'], C.i2c, 10.5);
+W([[EX + EW, 388], [1560, 388]], 'i2c', { lab: [1515, 383, 'G8 SDA'] });
+W([[EX + EW, 422], [1560, 422]], 'i2c', { lab: [1515, 417, 'G9 SCL'] });
+W([[1840, 402], [1960, 402], [1960, 320]], 'lcdcs', { w: 4 });
+T(1850, 396, 'CS1–CS15 ×15', { s: 11, c: C.lcdcs, net: 'lcdcs' });
+T(1850, 414, 'GPA0–7 · GPB0–6', { s: 10, c: C.lcdcs, net: 'lcdcs' });
+W([[1840, 426], [2010, 426], [2010, 320]], 'lcdcs', { w: 2.4 });
+T(1850, 440, 'RES ← GPB7（共用）', { s: 11, c: C.lcdcs, net: 'lcdcs' });
+
+box(1560, 448, 280, 62, 'USB-C（板載 · 優先權 1）', ['D+ ← G20 · D- ← G19 · 勿外接其他元件', 'TinyUSB NCM+CDC → 電腦 192.168.7.1:16622'], C.usb);
+W([[EX + EW, 456], [1560, 456]], 'usb', { lab: [1515, 451, 'G20 D+'] });
+W([[EX + EW, 490], [1560, 490]], 'usb', { lab: [1515, 485, 'G19 D-'] });
+
+/* ================= 電源 ================= */
+box(1560, 560, 240, 140, '外部電源 5V / 5–6A', ['DC 座 + 470µF', '20AWG 粗線供 LED', '與 ESP32 星形單點共地', '遠離 T-Bar (G1) 類比線'], C.power);
+W([[1800, 630], [1850, 630]], 'power', { w: 3 });
+W([[1850, 590], [1850, 729]], 'power', { w: 3 });
+W([[1850, 590], [1900, 590]], 'power'); W([[1850, 653], [1900, 653]], 'power'); W([[1850, 729], [1900, 729]], 'power');
+box(1900, 570, 400, 40, '→ ESP32-S3 5V 腳（J1-21）供電', [], C.power);
+box(1900, 620, 400, 66, '→ SK6812 × 80 燈鏈 5V', ['#0 / #35 / #79 三點補電（見左側 LED 區）', '全亮峰值約 3.6–4.8 A'], C.power);
+box(1900, 696, 400, 70, '→ MP1584 / MINI360 5V→3.3V / 2A', ['供 15×LCD + 4.0″ 大屏 + WM8960 + MCP×2（約 0.7 A）', '僅與 ESP32 共地，不從開發板 3V3 拉大電流'], C.power, 11);
+W([[2300, 729], [2420, 729], [2420, 320]], 'power', { w: 3 });
+T(2430, 520, '3.3V →', { s: 11, c: C.power, net: 'power' });
+T(2430, 536, '15×LCD VCC/BLK', { s: 11, c: C.power, net: 'power' });
+
+/* ================= v2：音訊 / 大螢幕 / 導覽鍵 ================= */
+// I2S 線：ESP 底側 → WM8960
+const IS = [[1180,'BCLK','G2 → BCLK'],[1245,'LRCK','G21 → LRCK (WS)'],[1310,'DACDAT','G38 → DACDAT'],[1375,'ADCDAT','ADCDAT → G39']];
+IS.forEach(([x, f, t], i) => {
+  W([[x, 800], [x, 1100]], 'audio', { w: 2.4 });
+  T(x + 5, 1060 - (i % 2) * 14, t, { s: 10, c: C.audio, net: 'audio' });
+});
+// WM8960
+box(1130, 1100, 340, 210, 'WM8960 立體聲編解碼模組', [
+  'I2S 全雙工 · 48 kHz · PLL 取自 BCLK（不需 MCLK）',
+  'I2C 位址 0x1A ← G8/G9 共線',
+  'BCLK←G2 · LRCK←G21 · DACDAT←G38 · ADCDAT→G39',
+  '輸入來源（MIC1/2/3）由暫存器切換，不佔 GPIO',
+  '耳機輸出約 40 mW · 音量 = E5 旋鈕（軟體）',
+  '數位 / 類比電源分別濾波，遠離 SK6812 5V 軌',
+  '可用輸入→耳機混音器做低延遲自聽 (sidetone)'
+], C.audio, 10.5);
+tag(1180, 1318, 80, 'NET: G8 SDA', 'i2c'); tag(1270, 1318, 80, 'NET: G9 SCL', 'i2c');
+W([[1220, 1318], [1220, 1310]], 'i2c', { dash: '3 3' }); W([[1310, 1318], [1310, 1310]], 'i2c', { dash: '3 3' });
+
+// 麥克風 / 6.35mm / 耳機區塊（四合一全接口前端）
+box(1560, 1068, 450, 50, 'MIC 1 · 3.5mm 麥克風孔（耳麥 / 領夾麥 Electret）', ['→ WM8960 LINPUT1 · 由內部 MICBIAS (~2.5V) 偏壓供電'], C.audio, 10.5);
+box(1560, 1124, 450, 58, 'MIC 2 · XLR 專業平衡麥克風孔（★ 支援 OFF / +5V / +48V 三模）', [
+  '5V→48V 升壓經 6.81kΩ×2 送 Pin2/3（MCP#2 GPA4 控 48V、GPA5 控 5V）',
+  '經 22µF/63V 隔直電容 + INA217 平衡前級 → WM8960 LINPUT2'
+], C.audio, 10);
+box(1560, 1188, 450, 56, 'IN 3 · 6.35mm (1/4") TRS 孔（★ 支援 MIC / LINE-IN 雙模式）', [
+  '可與 XLR 共用 Combo 座（中心 6.35mm 不帶 48V 電，安全防燒）',
+  'MCP#2 GPA6 切換：MIC 模式 (+25dB 高增益) / LINE-IN 模式 (投入 -20dB Pad)'
+], C.audio, 10);
+box(1560, 1250, 450, 46, 'MIC 4 · 機載類比 MEMS 麥克風（面板內建免持收音）', ['→ WM8960 LINPUT3（使用類比輸出型 MEMS，不佔 I2S）'], C.audio, 10.5);
+box(1560, 1302, 450, 44, '🎧 耳機功放輸出 · 3.5mm / 6.35mm 耳機座', ['HP_L / HP_R（音量 = E5 旋鈕 + 0.0ms 類比自聽 Sidetone）'], C.audio, 10.5);
+W([[1560, 1093], [1470, 1093]], 'audio', { arrow: true });
+W([[1560, 1153], [1470, 1153]], 'audio', { arrow: true });
+W([[1560, 1216], [1470, 1216]], 'audio', { arrow: true });
+W([[1560, 1273], [1470, 1273]], 'audio', { arrow: true });
+W([[1470, 1324], [1560, 1324]], 'audio', { arrow: true });
+// VBAN + 內建 Web UI 設定後台
+box(2040, 1068, 520, 278, 'VBAN 音訊/名稱同步 (UDP 6980) + 🌐 內建 Web UI 管理後台 (HTTP 80)', [
+  '• 接收/發送：48kHz PCM 經 jitter buffer ⇄ WM8960 耳機 / 四合一麥克風',
+  '★【VBAN 裝置名稱自動傳輸上屏】：',
+  '  1. 封包標頭自帶 16B streamname + 2. VBAN-TEXT/mDNS 廣播完整中文工位名，',
+  '     收到遠端改名自動更新 2.25″ 與 4.0″ 螢幕標籤！',
+  '★【ESP32-S3 內建 Web UI 網頁設定後台 (HTTP 80 + WebSocket + NVS 儲存)】：',
+  '  • 瀏覽器連入本機 IP 或 http://switcher.local 即可開啟設定網頁',
+  '  • 4.0″ Config 螢幕能動的所有設定，網頁 100% 都能改並雙向即時同步！',
+  '  • 支援 W5500 / Wi-Fi【固定 IP (Static IP / Mask / GW / DNS) 或 DHCP】、',
+  '    裝置名稱、Companion IP、VBAN 路由、XLR 5V/48V、6.35mm 模式，全部存入 NVS'
+], C.audio, 10.4);
+W([[2000, 1108], [2040, 1108]], 'audio', { dash: '4 3', arrow: true });
+W([[2040, 1306], [2000, 1306]], 'audio', { dash: '4 3', arrow: true });
+
+// 導覽 / ENC11
+box(10, 1070, 410, 250, 'Config 操作區（本機專用，不上報 Companion）', [
+  'ENC11（EC11）：C→GND · A→U13.G · B→U13.H · S2→U14.A',
+  '6 顆導覽鍵：一端 GND，另一端 → 輸入腳 + 10kΩ 上拉 3V3',
+  '  ▲上 U14.B · ▼下 U14.C · ◀左 U14.D · ▶右 U14.E',
+  '  ⏎進入 U14.F · ⎋離開 U14.G（每鍵並 100nF 防抖，選配）',
+  'E4 的 A/B 搬到鏈上：A→U14.H · B→U15.A',
+  'U15.B–H 共 7 路預留'
+], C.chain, 10.5);
+['▲ B','▼ C','◀ D','▶ E','⏎ F','⎋ G'].forEach((s, i) => {
+  const x = 26 + i * 64;
+  e('rect', { x, y: 1250, width: 56, height: 44, rx: 8, fill: '#fff', stroke: C.chain, 'stroke-width': 1.6 });
+  T(x + 28, 1277, s, { a: 'middle', s: 15, b: 1, c: '#92400e' });
+});
+T(26, 1312, '（字母 = 對應 U14 輸入腳 A–H）', { s: 9.5, c: '#64748b' });
+W([[230, 1070], [230, 1030], [1010, 1030], [1010, 1010]], 'chain', { arrow: true, lab: [620, 1024, 'ENC11 + 6 鍵 → U13.G/H · U14.A–G（走同一條掃描鏈，0 GPIO）'] });
+
+// MCP#2
+box(440, 1070, 350, 175, 'MCP23017 #2（0x21 · 大屏與音訊前端控制）', [
+  'A0 接 3V3 · RESET 10kΩ 上拉 · SDA/SCL 共線',
+  'GPA0 → 4.0″ 大屏 CS · GPA1 → 大屏 RST',
+  'GPA2 → W5500 RST（原 G21） · GPA3 → 大屏背光',
+  'GPA4 → XLR +48V 幻象電源啟閉（5V→48V 升壓）',
+  'GPA5 → XLR +5V 偏壓供電切換（OFF / 5V / 48V）',
+  'GPA6 → 6.35mm MIC / LINE-IN (-20dB Pad) 切換',
+  'GPA7 · GPB0–7 共 9 路預留'
+], C.i2c, 10.2);
+tag(450, 1044, 92, 'NET: G8 SDA', 'i2c'); tag(552, 1044, 92, 'NET: G9 SCL', 'i2c');
+W([[496, 1062], [496, 1070]], 'i2c', { dash: '3 3' }); W([[598, 1062], [598, 1070]], 'i2c', { dash: '3 3' });
+
+// 4.0" 大螢幕
+box(830, 1070, 280, 160, '4.0″ 480×320 ST7796S（Config）', [
+  'SDA←G11 · SCL←G12 · DC←G47（共用 SPI2）',
+  'CS←MCP#2 GPA0 · RST←GPA1',
+  'BL←GPA3 經 NMOS · VCC←3.3V 降壓軌',
+  '觸控腳不接 · SPI 26 MHz',
+  '局部刷新、傳輸分塊（避讓 W5500）',
+  'LVGL 緩衝放 PSRAM'
+], C.lcdcs, 10.5);
+W([[760, 1100], [830, 1100]], 'lcdcs', { lab: [795, 1095, 'CS'] });
+W([[760, 1125], [830, 1125]], 'lcdcs', { lab: [795, 1120, 'RST'] });
+W([[760, 1150], [830, 1150]], 'lcdcs', { lab: [795, 1145, 'BL'] });
+tag(836, 1044, 82, 'NET: G11 MOSI', 'spi'); tag(922, 1044, 82, 'NET: G12 SCLK', 'spi'); tag(1008, 1044, 82, 'NET: G47 DC', 'spi');
+[877, 963, 1049].forEach(x => W([[x, 1062], [x, 1070]], 'spi', { dash: '3 3' }));
+
+/* ================= 備註區 ================= */
+function panel(x, y, w, h, title, lines, col) {
+  e('rect', { x, y, width: w, height: h, rx: 8, fill: '#f8fafc', stroke: col, 'stroke-width': 1.4 });
+  T(x + 12, y + 20, title, { b: 1, s: 13, c: col });
+  lines.forEach((l, i) => T(x + 12, y + 42 + i * 18, l, { s: 11.5, c: '#334155' }));
+}
+panel(1560, 800, 980, 200, 'GPIO 統計與擴展接口（v2）', [
+  '總排針 44 Pin · 已用 29 · 空腳 0 · 禁區 7（G0 G3 G35–37 G45 G46）· G43/44 = UART0 除錯口（保留）',
+  '新增：G2 / G21 / G38 / G39 = I2S（BCLK / LRCK / DOUT / DIN）；E4 搬到 74HC165 掃描鏈、W5500 RST 搬到 MCP#2',
+  '擴展接口共 152 個：74HC165 ×15 = 120 路輸入（G40/41/42）+ MCP23017 ×2 = 32 路輸出（G8/G9）',
+  '120 路 = 80 按鍵 + 11 旋鈕 S2 + 16 旋鈕 A/B 相（E4–E10、ENC11）+ 6 導覽鍵 + 7 預留',
+  'MCP#1 16/16（15×LCD CS + RES）· MCP#2 4/16（大屏 CS、RST、BL + W5500 RST）+ 12 預留',
+  'I2C 位址：0x20 / 0x21（MCP）· 0x1A（WM8960）· 0x3C（備用 OLED）'
+], '#475569');
+panel(10, 1350, 1100, 230, '按鍵 / 旋鈕如何接入 74HC165（v2）', [
+  '每顆按鍵：一端 GND，另一端同時接 74HC165 輸入腳與 10kΩ 上拉（建議 9 腳排阻 A103J，每片 1 條）到 3V3。',
+  'U1–U10（80 路）= KEY 0–79：13 組 2×3 Pod（78 鍵）+ K78 CUT + K79 AUTO。',
+  'U11 A–H = EC11 #1–#8 按壓 S2；U12 A–B = EC11 #9–#10 S2；U12 C–H = E5–E7 A/B；U13 A–F = E8–E10 A/B。',
+  'U13 G/H = ENC11 A/B；U14 A = ENC11 S2，B–G = ▲▼◀▶ ⏎ ⎋，H = E4 A；U15 A = E4 B，B–H 預留。',
+  'E1–E3 的 A/B 相直連 G6/7、G15/16、G17/18；Jog 直連 G4/G5。',
+  '讀取：SH/LD 拉低鎖存 → 送 120 個 CLK → 由 G42 逐 bit 讀入，順序為 U15.H … U1.A。'
+], C.chain);
+panel(1130, 1350, 1430, 230, '網路 / 通訊 / 音訊與接線要點', [
+  '三模備援：USB-C（優先 1）→ W5500 RJ45（優先 2）→ Wi-Fi（優先 3）；Companion TCP 16622，DEVICEID 固定。',
+  'SPI2 並接 W5500 + 15 片 ST7789P + 4.0″ 大屏：G11 / G12 各分支串 33Ω、排線 < 25 cm、時脈 20–26 MHz。',
+  '電源隔離：5V/5–6A 燈珠軌、3.3V/2A 彩屏軌各自獨立，入口處星形單點接地；WM8960 類比電源另加濾波。',
+  'T-Bar 必須用 B10K（線性）並接 ADC1（G1），G1 對地並 100nF。',
+  'Jog 若為 NPN 開漏：A/B 各 4.7kΩ 上拉到 3V3（嚴禁 5V）；若為 5V 推挽則需分壓或電平轉換。',
+  'G43 / G44 保留為 UART0（本版沒有改用）。(NET 標籤同名即相連；本圖依 README 整理，焊接前請再核對腳位。)'
+], '#0369a1');
+
+/* ================= 圖例與互動 ================= */
+const lg = document.getElementById('legend');
+const active = new Set();
+function refresh() {
+  document.querySelectorAll('[data-net]').forEach(n => {
+    if (!n.closest('svg')) return;
+    n.classList.toggle('hide', active.size > 0 && !active.has(n.dataset.net));
+  });
+  lg.querySelectorAll('.chip').forEach(c => c.classList.toggle('off', active.size > 0 && !active.has(c.dataset.k)));
+}
+Object.keys(NAMES).forEach(k => {
+  const c = document.createElement('span');
+  c.className = 'chip'; c.dataset.k = k;
+  c.style.borderColor = C[k]; c.style.color = C[k]; c.textContent = '● ' + NAMES[k];
+  c.onclick = () => { active.has(k) ? active.delete(k) : active.add(k); refresh(); };
+  lg.appendChild(c);
+});
+document.querySelectorAll('[data-z]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-z]').forEach(x => x.classList.remove('on')); b.classList.add('on');
+  S.style.width = b.dataset.z + '%';
+});
+</script>
+</body>
+</html>

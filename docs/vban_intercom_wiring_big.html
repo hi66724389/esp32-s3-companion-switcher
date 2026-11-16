@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ESP32-S3 獨立 VBAN 路由拆分 & 36鍵多工位 Intercom 主站 · 全部接線總電路圖 (v2 廣電對講版)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f1f5f9; color: #0f172a; font-family: "Segoe UI","Microsoft JhengHei",sans-serif; }
+  header { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #cbd5e1; padding: 10px 16px; }
+  h1 { font-size: 16px; margin: 0 0 6px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1.5px solid; background: #fff; cursor: pointer; user-select: none; }
+  .chip.off { opacity: .35; }
+  .btn { font-size: 12px; padding: 3px 10px; border-radius: 6px; border: 1px solid #94a3b8; background: #fff; cursor: pointer; }
+  .btn.on { background: #0f172a; color: #fff; }
+  .sep { width: 1px; height: 18px; background: #cbd5e1; margin: 0 6px; }
+  #wrap { overflow: auto; padding: 12px; }
+  svg { background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; display: block; width: 100%; height: auto; }
+  .w, .lb { transition: opacity .15s; }
+  .hide { opacity: .06; }
+  @media print { header { position: static; } #wrap { padding: 0; } @page { size: A3 landscape; margin: 6mm; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>ESP32-S3 獨立 VBAN 路由拆分 & 36 鍵 (6×[2×3]) Intercom 主站 · 全部接線總電路圖（含三段撥桿 PTT/Latch/Mute、VOX 閃燈、部分同發、0ms 自聽、Mic 音量/增益表）</h1>
+  <div class="bar" id="legend"></div>
+  <div class="bar" style="margin-top:6px">
+    <span style="font-size:12px;color:#475569">點擊色塊可單獨顯示該類線路（再點一次取消）。縮放：</span>
+    <button class="btn on" data-z="100">100%</button>
+    <button class="btn" data-z="140">140%</button>
+    <button class="btn" data-z="180">180%</button>
+    <span class="sep"></span>
+    <button class="btn" onclick="window.print()">列印 / 存 PDF</button>
+  </div>
+</header>
+<div id="wrap">
+<svg id="s" viewBox="0 80 2600 1400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#d97706"/></marker>
+    <marker id="arA" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4f46e5"/></marker>
+  </defs>
+</svg>
+</div>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const S = document.getElementById('s');
+const C = {
+  eth:'#0d9488', spi3:'#2563eb', lcdcs:'#7c3aed', i2c:'#0891b2',
+  audio:'#4f46e5', enc:'#16a34a', chain:'#d97706', led:'#9333ea', usb:'#64748b', power:'#dc2626'
+};
+const NAMES = {
+  eth:'SPI2 專線 · W5500 網口 (G10–14/47)',
+  spi3:'SPI3 專線 · 7 塊彩屏 (G1/G2/G42)',
+  lcdcs:'LCD CS / RES (單顆 MCP 0x20)',
+  i2c:'I2C 總線 (G8/G9)',
+  audio:'I2S 全雙工 + 0ms 自聽 (G4/5/38/39)',
+  enc:'3×EC11 硬體 PCNT (G6/7/15–18)',
+  chain:'6×74HC165 掃描鏈 (36鍵+三段撥桿+導覽)',
+  led:'36×SK6812 燈鏈 (VOX來電閃燈/Mute/同發)',
+  usb:'USB-C 直連 (G19/20)',
+  power:'電源 / PoE / 地'
+};
+
+function e(t, a = {}, txt) {
+  const n = document.createElementNS(NS, t);
+  for (const k in a) n.setAttribute(k, a[k]);
+  if (txt != null) n.textContent = txt;
+  S.appendChild(n); return n;
+}
+function T(x, y, txt, o = {}) {
+  const a = { x, y, 'font-size': o.s || 12, 'font-weight': o.b ? 700 : 400, fill: o.c || '#1e293b', 'text-anchor': o.a || 'start' };
+  if (o.net) { a['data-net'] = o.net; a.class = 'lb'; }
+  return e('text', a, txt);
+}
+function box(x, y, w, h, title, lines, col, fs = 11.5) {
+  e('rect', { x, y, width: w, height: h, rx: 8, fill: col + '16', stroke: col, 'stroke-width': 1.6 });
+  T(x + 10, y + 19, title, { b: 1, s: 13, c: col });
+  lines.forEach((l, i) => T(x + 10, y + 37 + i * (fs + 4.5), l, { s: fs, c: '#334155' }));
+}
+function W(pts, net, o = {}) {
+  const d = 'M' + pts.map(p => p.join(' ')).join(' L ');
+  e('path', { d, class: 'w', 'data-net': net, stroke: C[net], 'stroke-width': o.w || 2.4, fill: 'none',
+    'stroke-dasharray': o.dash || '', 'stroke-linejoin': 'round',
+    'marker-end': o.arrow ? (net === 'audio' ? 'url(#arA)' : 'url(#ar)') : '' });
+  if (o.lab) T(o.lab[0], o.lab[1], o.lab[2], { s: 11, c: C[net], a: o.lab[3] || 'middle', net });
+}
+function J(x, y, net) { e('circle', { cx: x, cy: y, r: 4, fill: C[net], class: 'w', 'data-net': net }); }
+
+/* ================= ESP32-S3 本體 ================= */
+const EX = 1110, EW = 360;
+e('rect', { x: EX, y: 110, width: EW, height: 670, rx: 12, fill: '#e0f2fe', stroke: '#0369a1', 'stroke-width': 2.5 });
+T(EX + EW / 2, 134, 'ESP32-S3-DevKitC-1 (N16R8)', { a: 'middle', b: 1, s: 16, c: '#0369a1' });
+T(EX + EW / 2, 152, '獨立 VBAN 路由拆分 & 36 鍵 Intercom 主站', { a: 'middle', s: 11.5, c: '#0369a1', b: 1 });
+
+const L = [ // 左側腳位
+  [185,'G6 · E1-A (耳機總音量)','enc'],
+  [218,'G7 · E1-B (PCNT0)','enc'],
+  [262,'G15 · E2-A (PGM/自聽混音)','enc'],
+  [295,'G16 · E2-B (PCNT1)','enc'],
+  [338,'G17 · ENC3-A (選單/Mic增益)','enc'],
+  [371,'G18 · ENC3-B (PCNT2)','enc'],
+  [425,'G40 · 74HC165 CLK','chain'],
+  [460,'G41 · 74HC165 SH/LD','chain'],
+  [495,'G21 · U6 QH 串列讀入','chain'],
+  [555,'G48 · SK6812×36 DIN','led']
+];
+L.forEach(([y, t, n]) => { e('circle', { cx: EX, cy: y, r: 5, fill: C[n] }); T(EX + 12, y + 4, t, { s: 11.5, b: 1 }); });
+
+const R = [ // 右側腳位（雙 SPI 分流！）
+  [175,'G10 · W5500 CS (SPI2)','eth'],
+  [205,'G11 · W5500 MOSI','eth'],
+  [235,'G12 · W5500 SCLK','eth'],
+  [265,'G13 · W5500 MISO','eth'],
+  [295,'G14 · W5500 INT','eth'],
+  [325,'G47 · W5500 RST','eth'],
+  [375,'G1 · LCD SDA (SPI3)','spi3'],
+  [408,'G2 · LCD SCL (SPI3)','spi3'],
+  [441,'G42 · LCD DC 共用','spi3'],
+  [495,'G8 · I2C SDA','i2c'],
+  [528,'G9 · I2C SCL','i2c'],
+  [580,'G20 · USB D+','usb'],
+  [612,'G19 · USB D-','usb']
+];
+R.forEach(([y, t, n]) => { e('circle', { cx: EX + EW, cy: y, r: 5, fill: C[n] }); T(EX + EW - 12, y + 4, t, { s: 11.5, b: 1, a: 'end' }); });
+
+const B = [[1175,'G4','BCLK'],[1250,'G5','LRCK'],[1325,'G38','DOUT'],[1400,'G39','DIN']]; // 底側：I2S0
+B.forEach(([x, g, f]) => { e('circle', { cx: x, cy: 780, r: 5, fill: C.audio }); T(x, 752, g, { a: 'middle', s: 11, b: 1 }); T(x, 766, f, { a: 'middle', s: 10.5 }); });
+
+['★ 黃金雙 SPI：W5500 獨佔 SPI2 · 7 塊彩屏走獨立 SPI3 (刷音量表不卡音訊)',
+ '★ 0.0 ms 零延遲自聽：WM8960 內部類比旁路混音直入耳機，無數位回音',
+ '★ 三段式發話撥桿 (U6.F/G)：上扳持續發話 Latch · 中置 MUTE · 下壓彈回 PTT',
+ '禁用保留：G0 G3 G35–37 G45 G46 · UART0 (G43/44) 保留除錯'].forEach((s, i) => T(EX + EW / 2, 665 + i * 17, s, { a: 'middle', s: 10.2, c: '#0c4a6e' }));
+
+/* ================= 左側：3 顆極簡旋鈕 (硬體 PCNT) + 36 顆 LED (含 VOX 閃燈說明) ================= */
+const ENCS = [
+  ['EC11 #1 · E1 耳機 / 內建小喇叭總音量', 'C→GND · 按壓 S2→U5.E（短按切換「內建小喇叭 ON/OFF」；長按全靜音）', 185, 218, 168, 'G6 ← A 相 (PCNT0)', 'G7 ← B 相'],
+  ['EC11 #2 · E2 PGM 背景音 / 0ms 自聽音量', 'C→GND · 按壓 S2→U5.F（切換調 PGM 比例 或 Sidetone 自聽音量）', 262, 295, 245, 'G15 ← A 相 (PCNT1)', 'G16 ← B 相'],
+  ['EC11 #3 · ENC3 Config 選單 / Mic PGA 增益調節', 'C→GND · 按壓 S2→U5.G（主畫面直接調 Mic 增益 dB；選單內做確認/鍵盤輸入）', 338, 371, 322, 'G17 ← A 相 (PCNT2)', 'G18 ← B 相']
+];
+ENCS.forEach(([t, l, ya, yb, by, la, lb]) => {
+  box(70, by, 430, 62, t, [l, '10kΩ 上拉 3V3 · 原生硬體 PCNT 零掉步'], C.enc, 10.8);
+  W([[500, ya], [EX, ya]], 'enc', { lab: [805, ya - 6, la] });
+  W([[500, yb], [EX, yb]], 'enc', { lab: [805, yb - 6, lb] });
+});
+
+box(70, 515, 430, 92, 'SK6812 MINI-E × 36 顆（LED #0 – #35 智慧語音 Tally 燈）', [
+  'G48 → 串 330Ω → LED #0 DIN → … → LED #35',
+  '🟠 橘白快閃 = 對方有聲音進來 (VOX > -40dBFS 自動閃燈) · 🔴 紅爆閃 = 對方按 Call',
+  '🟢 綠燈 = 正對他發話 · 🩵 青燈 = 已勾選「部分同發」 · 🟣 紫紅暗燈 = 已單獨 Mute 他',
+  '峰值僅 1.6A（5V 頭尾 #0 / #35 兩點補電 + 470µF 電容）'
+], C.led, 10.5);
+W([[500, 555], [EX, 555]], 'led', { lab: [805, 548, 'G48 → 330Ω → LED #0 DIN (RMT)'] });
+
+/* ================= 左下：6 片 74HC165 掃描鏈 (48/48 滿載：36 鍵 + 6 導覽 + 3 S2 + 三段發話撥桿 + 腳踏 PTT) ================= */
+W([[EX, 425], [42, 425], [42, 700], [920, 700]], 'chain', { lab: [805, 419, 'G40 → CLK（U1–U6 Pin 2 並聯）'] });
+W([[EX, 460], [28, 460], [28, 722], [935, 722]], 'chain', { lab: [805, 454, 'G41 → SH/LD（U1–U6 Pin 1 並聯）'] });
+W([[EX, 495], [1055, 495], [1055, 805], [985, 805]], 'chain', { lab: [805, 489, 'G21 ← U6 Pin 9 (QH 串列讀入 · 48 bits @ 2kHz)'] });
+
+e('rect', { x: 20, y: 645, width: 1055, height: 395, rx: 10, fill: 'none', stroke: C.chain, 'stroke-dasharray': '6 5', 'stroke-width': 1.6 });
+T(50, 670, '74HC165 × 6 片菊花鏈（6×8 = 48 bits 100% 滿載：36 工位鍵 + 3 旋鈕 S2 + 6 導覽鍵 + 三段發話撥桿 LATCH/PTT + 腳踏 PTT）', { b: 1, s: 12.8, c: C.chain });
+
+const U6_INFO = [
+  ['U1', 'K0–K7 (8鍵)', 'Pod 1 (K0–5) + Pod 2 (K6–7)'],
+  ['U2', 'K8–K15 (8鍵)', 'Pod 2 (K8–11) + Pod 3 (K12–15)'],
+  ['U3', 'K16–K23 (8鍵)', 'Pod 3 (K16–17) + Pod 4 (K18–23)'],
+  ['U4', 'K24–K31 (8鍵)', 'Pod 5 群組群發 + K30同發/K31禁聽'],
+  ['U5', 'K32–35 + S2 + ▲', 'K32清空/K33-34拆分 + 3×S2 + ▲上'],
+  ['U6', '▼◀▶⏎⎋+撥桿+腳踏', 'A–E導覽 + F上扳Latch + G下壓PTT + H腳踏']
+];
+U6_INFO.forEach(([u, sub, desc], i) => {
+  const x = 75 + i * 150;
+  e('rect', { x, y: 765, width: 120, height: 80, rx: 6, fill: '#fef3c7', stroke: C.chain, 'stroke-width': 1.8 });
+  T(x + 60, 790, u + ' · 74HC165', { a: 'middle', b: 1, s: 13.5, c: '#92400e' });
+  T(x + 60, 810, sub, { a: 'middle', b: 1, s: 10.5, c: '#b45309' });
+  T(x + 60, 830, desc, { a: 'middle', s: 9, c: '#334155' });
+  W([[x + 30, 700], [x + 30, 765]], 'chain', { w: 1.6 }); J(x + 30, 700, 'chain');
+  W([[x + 60, 722], [x + 60, 765]], 'chain', { w: 1.6 }); J(x + 60, 722, 'chain');
+  W([[x + 90, 845], [x + 90, 880]], 'power', { w: 1.6 }); J(x + 90, 880, 'power');
+  if (i < 5) W([[x + 120, 805], [x + 150, 805]], 'chain', { w: 2.5, arrow: true });
+});
+W([[75, 805], [55, 805], [55, 880]], 'power', { w: 1.6 });
+W([[50, 880], [990, 880]], 'power', { w: 2 });
+T(60, 900, 'GND：每片 Pin 15 (/CE) 接地 · U1 Pin 10 (SER) 接地 · 每片配 1 條 A103J (10kΩ×8) 排阻上拉至 3V3 + 100nF 退耦', { s: 11, c: C.power, net: 'power' });
+
+// 導覽鍵 + 三段式撥桿開關 + 腳踏 PTT 視覺化小方塊
+['▲ U5.H','▼ U6.A','◀ U6.B','▶ U6.C','⏎ 進入 U6.D','⎋ 離開 U6.E','🕹️三段撥桿 U6.F/G','🦶腳踏PTT U6.H'].forEach((s, i) => {
+  const x = 48 + i * 124;
+  const isLever = i === 6;
+  e('rect', { x, y: 922, width: 116, height: 44, rx: 7, fill: isLever ? '#fef08a' : '#fff', stroke: isLever ? '#ca8a04' : C.chain, 'stroke-width': isLever ? 2.2 : 1.5 });
+  T(x + 58, 949, s, { a: 'middle', s: 11.2, b: 1, c: '#92400e' });
+});
+T(50, 988, '★ 🕹️ 三段式發話撥桿開關 (ON)-OFF-ON 接法：中間 COM 腳接 GND；上扳自鎖腳接 U6.F (=持續發話 Latch)；下壓彈回腳接 U6.G (=瞬時 PTT)；放回中間兩腳皆高電平 = 強制 MUTE！', { s: 10.8, b: 1, c: '#b45309' });
+T(50, 1008, '★ 雙擊任意工位鍵（或按 K31 禁聽鍵+工位鍵）= 單獨 Mute 該工位來話；短按勾選多個工位（亮青燈）後壓撥桿 = 「可選部分同發」！', { s: 10.8, c: '#334155' });
+
+/* ================= 右側上半：SPI2 獨佔 W5500 網口 ================= */
+box(1560, 150, 430, 195, 'W5500 有線網口模組（★ 100% 獨佔 SPI2 總線）', [
+  'CS←G10 · MOSI←G11 · SCLK←G12 · MISO→G13',
+  'INT→G14（斷線毫秒級中斷）· RST←G47（原生 GPIO 直控）',
+  '★ 不與任何螢幕共用 SPI！可開 40MHz DMA 全速收發 VBAN UDP',
+  '★ 建議加裝「5V PoE 分離器」：工位單插一條網線即可供電+通話',
+  '備援：USB-C (G19/20 NCM) 與 2.4GHz Wi-Fi 三模無縫切換'
+], C.eth, 11);
+[[175,'G10 CS'],[205,'G11 MOSI'],[235,'G12 SCLK'],[265,'G13 MISO'],[295,'G14 INT'],[325,'G47 RST']].forEach(([y, t]) =>
+  W([[EX + EW, y], [1560, y]], 'eth', { lab: [1515, y - 5, t] }));
+
+/* ================= 右側中段：SPI3 獨立螢幕總線 (6× 2.25" + 1× 4.0" Config 大屏含 Mic VU/Gain 表) ================= */
+const LX = 2030;
+e('rect', { x: LX, y: 150, width: 530, height: 325, rx: 10, fill: C.spi3 + '10', stroke: C.spi3, 'stroke-width': 1.8 });
+T(LX + 14, 174, 'SPI3 螢幕專線：6× 2.25″ 工位屏 + 1× 4.0″ 監控儀表與 Config 大屏', { b: 1, s: 13.5, c: C.spi3 });
+
+const POD_LCDS = [
+  ['LCD #1 · GPA0', 'Pod 1 核心組 (K0–5)', 'DIR / AD / PROD / AUD / CG / VTR (含VOX音柱)'],
+  ['LCD #2 · GPA1', 'Pod 2 攝影群 A (K6–11)', 'CAM 1 – CAM 6 (雙擊單獨顯示 🔇MUTE)'],
+  ['LCD #3 · GPA2', 'Pod 3 攝影群 B (K12–17)', 'CAM7–8 / 搖臂 / 穩定器 / 航拍 / POV'],
+  ['LCD #4 · GPA3', 'Pod 4 舞台燈光 (K18–23)', '舞台 / 燈光 / 大屏 / 主持 / 來賓 / 場控'],
+  ['LCD #5 · GPA4', 'Pod 5 群組群發 (K24–29)', 'ALL全體發 / GRP1攝影 / GRP2技術 / GRP3舞台 / IFB'],
+  ['LCD #6 · GPA5', 'Pod 6 同發/禁聽/路由(30–35)', 'MULTI同發 / MUTE_IN禁聽 / CLR清空 / SPL1-2 / DUCK']
+];
+POD_LCDS.forEach(([t1, t2, t3], i) => {
+  const x = LX + 14 + (i % 2) * 252, y = 190 + Math.floor(i / 2) * 60;
+  e('rect', { x, y, width: 242, height: 52, rx: 6, fill: '#fff', stroke: C.lcdcs, 'stroke-width': 1.4 });
+  T(x + 8, y + 18, t1 + ' — ' + t2, { s: 10.8, b: 1, c: C.lcdcs });
+  T(x + 8, y + 36, t3, { s: 9.2, c: '#475569' });
+});
+
+// 4.0" Config 大螢幕醒目框（強化 Mic VU 音量表 + 增益表 + 自聽顯示）
+e('rect', { x: LX + 14, y: 374, width: 494, height: 90, rx: 7, fill: '#eff6ff', stroke: '#1d4ed8', 'stroke-width': 2 });
+T(LX + 24, 394, '★ 4.0″ 480×320 ST7796S 監控儀表 & Config 大螢幕（CS_BIG = GPA6 · BL = GPB0）', { b: 1, s: 12.2, c: '#1d4ed8' });
+T(LX + 24, 413, '1. 常駐【本機 Mic 即時 VU 音量表 (-60~0dB 綠/黃/紅 + Peak Hold + CLIP 破音燈)】', { s: 10.3, b: 1, c: '#15803d' });
+T(LX + 24, 430, '2. 常駐【Mic PGA 增益表 (0~+30dB) + Noise Gate 門檻線 + 0ms 自聽音量條 (Sidetone dB)】', { s: 10.3, b: 1, c: '#0f766e' });
+T(LX + 24, 447, '3. 顯示「部分同發」已勾選工位清單、8ch VBAN 路由矩陣、LVGL 虛擬鍵盤（ENC3 + 6 導覽鍵）', { s: 10.2, c: '#1e293b' });
+T(LX + 24, 461, '共用 SPI3：SDA←G1 (33Ω) · SCL←G2 (33Ω) · DC←G42 · 共用 RES←MCP GPA7', { s: 9.8, c: '#0369a1' });
+
+W([[EX + EW, 375], [LX, 375]], 'spi3', { lab: [1760, 369, 'G1 → SPI3 MOSI/SDA（串 33Ω 接 7 塊屏）'] });
+W([[EX + EW, 408], [LX, 408]], 'spi3', { lab: [1760, 402, 'G2 → SPI3 SCLK/SCL（串 33Ω 接 7 塊屏）'] });
+W([[EX + EW, 441], [LX, 441]], 'spi3', { lab: [1760, 435, 'G42 → 7 塊屏共用 DC'] });
+
+/* ================= 單顆 MCP23017 (0x20) + USB + 電源 ================= */
+box(1560, 480, 430, 118, '單顆 MCP23017-E/SP（0x20 · 管 7 塊屏 + 幻象電源與 6.35mm 模式）', [
+  'GPA0–5 → 6×2.25″ 小屏 CS1–CS6 · GPA6 → 4.0″ 大屏 CS_BIG',
+  'GPA7 → 全部 7 塊屏共用 RES · GPB0 → 4.0″ 背光 BL · GPB1 → On-Air 燈 · GPB2 → 蜂鳴器',
+  '★ GPB3 → XLR +48V 幻象電源啟閉 · GPB4 → XLR +5V 偏壓切換 (OFF/5V/48V)',
+  '★ GPB5 → 6.35mm TRS MIC / LINE-IN (-20dB Pad) 切換（剩 GPB6–7 共 2 路預留）'
+], C.i2c, 10.1);
+W([[EX + EW, 495], [1560, 495]], 'i2c', { lab: [1515, 490, 'G8 SDA'] });
+W([[EX + EW, 528], [1560, 528]], 'i2c', { lab: [1515, 523, 'G9 SCL'] });
+W([[1990, 530], [2260, 530], [2260, 475]], 'lcdcs', { w: 3.5, lab: [2125, 522, 'CS1–6 + CS_BIG + RES + BL → 7 塊屏'] });
+
+box(1560, 605, 430, 55, 'USB-C 直連（G19/G20 · TinyUSB NCM 網卡 + CDC 除錯）', [
+  '插電腦免驅動直接跑 VBAN UDP 6980 或 Companion TCP 16622'
+], C.usb, 11);
+W([[EX + EW, 580], [1540, 580], [1540, 618], [1560, 618]], 'usb', { lab: [1515, 575, 'G20 D+'] });
+W([[EX + EW, 612], [1530, 612], [1530, 642], [1560, 642]], 'usb', { lab: [1515, 607, 'G19 D-'] });
+
+box(2030, 550, 530, 110, '電源系統：5V / 3A（或 48V→5V PoE 分離器）+ 3.3V / 2A 降壓', [
+  '5V 軌 → ESP32 5V 腳 + 36 顆 SK6812 燈珠（峰值僅 1.6A，比 80 鍵主機省電一半）',
+  'MP1584 5V→3.3V/2A → 6×2.25″ 小屏 + 4.0″ 大屏 + MCP23017（約 380mA）',
+  'WM8960 類比電源經獨立 LC / LDO 濾波，確保 0ms 類比自聽底噪極低'
+], C.power, 11);
+
+/* ================= 下半部核心：WM8960 (含 0ms 硬體類比自聽) + VBAN 群發/同發/VOX/Mute 引擎 ================= */
+const IS = [[1175,'G4 → BCLK'],[1250,'G5 → LRCK'],[1325,'G38 → DACDAT (遠端混音)'],[1400,'ADCDAT (Mic 畫音錶+發VBAN) → G39']];
+IS.forEach(([x, t], i) => {
+  W([[x, 780], [x, 1060]], 'audio', { w: 2.5 });
+  T(x + 6, 995 - (i % 2) * 16, t, { s: 10.2, c: C.audio, net: 'audio', b: 1 });
+});
+
+box(1110, 1055, 380, 290, 'WM8960 全雙工編解碼器（★ 0.0ms 自聽 + 1W 喇叭功放）', [
+  'I2S0 全雙工 48kHz / 16-bit · PLL 由 BCLK 產生（免 MCLK）',
+  'I2C (0x1A) 控制 Mic PGA 增益 (0~+30dB)、耳機音量與小喇叭音量',
+  '★【0.0 ms 零延遲自聽 (Hardware Analog Sidetone)】：',
+  '  開啟暫存器 R47/R48 (LI2LO/RI2RO → HP Out)，本機 Mic 在晶片內',
+  '  以類比路徑直接混入耳機（只進耳機、絕不進小喇叭！）',
+  '★【內建 1W @ 8Ω Class-D 喇叭功放 (SPK_LP/LN, SPK_RP/RN)】：',
+  '  免外加功放直接推動面板小喇叭；扳動發話撥桿 (PTT/Latch) 時，',
+  '  韌體自動將 SPKVOL 靜音/衰減 -20dB (Speaker Cut)，防回授嘯叫！',
+  '• 三種 Mic 輸入：LINPUT1=耳麥 · LINPUT2=XLR · LINPUT3=MEMS'
+], C.audio, 10.3);
+
+box(1540, 1052, 440, 44, 'MIC 1 · 3.5mm 工位耳麥孔（Electret 駐極體）', ['接 WM8960 LINPUT1 · 由內部 MICBIAS (~2.5V) 提供偏壓'], C.audio, 10.2);
+box(1540, 1100, 440, 50, 'MIC 2 · XLR 專業平衡母座（★ 支援 OFF / +5V / +48V 三模）', [
+  'MCP GPB3 控 +48V (經 6.81kΩ×2)、GPB4 控 +5V 偏壓；22µF/63V 隔直 + INA217 → LINPUT2'
+], C.audio, 9.8);
+box(1540, 1154, 440, 50, 'IN 3 · 6.35mm (1/4") TRS 孔（★ 支援 MIC / LINE-IN 雙模）', [
+  '與 XLR 共用 Combo 座（中心孔無 48V）· MCP GPB5 切 MIC (+25dB) 或 LINE-IN (-20dB Pad)'
+], C.audio, 9.8);
+box(1540, 1208, 440, 44, 'MIC 4 · 面板機載類比 MEMS 麥克風（免戴耳麥對講）', ['接 WM8960 LINPUT3（搭配三段撥桿 + 小喇叭自動消音，免戴耳機對講）'], C.audio, 10.2);
+box(1540, 1256, 440, 44, '🎧 3.5mm / 6.35mm 耳機輸出（遠端混音 + 0.0ms 自己聲音）', [
+  'HP_L / HP_R = 遠端混音 + 本機 Mic 0.0ms 類比自聽（支援左右耳分離）'
+], C.audio, 10.2);
+box(1540, 1304, 440, 46, '🔊 面板內建 8Ω / 1W～2W 腔體小喇叭（免戴耳麥值班）', [
+  '接 WM8960 SPK_LP/LN · 發話時自動消音 (Auto Speaker Cut) 防嘯叫！'
+], C.audio, 10.2);
+
+W([[1540, 1074], [1490, 1074]], 'audio', { arrow: true });
+W([[1540, 1125], [1490, 1125]], 'audio', { arrow: true });
+W([[1540, 1179], [1490, 1179]], 'audio', { arrow: true });
+W([[1540, 1230], [1490, 1230]], 'audio', { arrow: true });
+W([[1490, 1278], [1540, 1278]], 'audio', { arrow: true });
+W([[1490, 1327], [1540, 1327]], 'audio', { arrow: true });
+
+box(2020, 685, 540, 665, '🚀 VBAN 廣電對講引擎 + 🏷️ 裝置名稱自動上屏 + 🌐 內建 Web UI 管理後台', [
+  '【1. 🏷️ VBAN 裝置名稱自動傳輸上屏 (2.25″ 與 4.0″ 螢幕動態顯示)】',
+  '  • 第 1 層：每個 VBAN 封包標頭自帶 16B streamname (100% 相容電腦 Voicemeeter)',
+  '  • 第 2 層：ESP32 之間透過 VBAN-TEXT/SERVICE 與 mDNS 廣播完整中文工位名',
+  '    (如「一號機-搖臂」)，對方一改名並儲存，全場機器的 2.25″ 螢幕自動改名！',
+  '',
+  '【2. 🌐 內建 Web UI 網頁設定後台 (HTTP 80 + WebSocket + NVS 永久儲存)】',
+  '  • 瀏覽器連入本機 IP 或 http://intercom-main.local 免裝軟體開啟設定網頁',
+  '  • 與本機 4.0″ Config 大螢幕 100% 雙向同步，按下儲存立即寫入 NVS 斷電不遺失：',
+  '    - 網路設定：W5500 / Wi-Fi 支援【固定 IP (Static IP / Mask / GW / DNS) 或 DHCP】',
+  '    - 裝置身分：設定本機中文名稱、VBAN streamname、36 鍵對應工位 IP 與拆分規則',
+  '    - 音訊前端：網頁直接切換 XLR (OFF/5V/48V)、6.35mm (Mic/Line-In)、PGA 增益',
+  '',
+  '【3. 來電有聲自動閃燈 (VOX) + 單獨 Mute 別人 + 群發 / 可選部分同發】',
+  '  • VOX 閃燈：對方講話 (> -40dBFS) 按鍵立刻橘白快閃 + 2.25″ 螢幕跳動音柱',
+  '  • 單獨 Mute 對方：雙擊該工位鍵（或按 K31+工位鍵）立刻將該人來話靜音 (🔇)',
+  '  • 群發與部分同發：點選任意多顆工位鍵 (亮青燈) → 壓下三段式撥桿即可同步發話！'
+], C.audio, 10.2);
+
+W([[1990, 245], [2290, 245], [2290, 685]], 'eth', { w: 3, dash: '5 4', lab: [2150, 238, 'SPI2 W5500 高速 UDP 封包直入 VBAN 引擎'] });
+W([[1980, 1294], [2020, 1294]], 'audio', { dash: '4 3', arrow: true });
+
+/* 左下總結面板 */
+box(20, 1060, 1055, 275, '36 鍵 (6×[2×3]) VBAN Intercom 主站 · 廣電級對講操作速查表', [
+  '1. 【🕹️ 三段式發話撥桿 (U6.F / U6.G)】：下壓彈回 = 瞬時發話 (PTT)；放回中間 = 本機 Mic 靜音 (MUTE)；上扳自鎖 = 免持持續發話 (Latch)。',
+  '2. 【🎯 可選部分同發】：短按勾選多顆工位鍵（亮青燈）→ 扳動發話撥桿，即可同時對被勾選的這幾個人講話；按 K32 (CLR) 清空選取。',
+  '3. 【📢 群組群發】：按 Pod 5 的 ALL (K24) / GRP1 攝影群 (K25) / GRP2 技術群 (K26) / GRP3 舞台群 (K27)，一鍵對整個部門廣播。',
+  '4. 【🔇 單獨 Mute 別人】：誰的麥克風太吵，直接「雙擊」他的工位鍵（或按住 K31 MUTE_IN 再點他），立刻把他的來話靜音（亮紫紅燈 + 螢幕 🔇）。',
+  '5. 【🟠 來電有聲閃燈 (VOX)】：只要任何工位傳來的 VBAN 音軌有語音能量 (> -40dBFS)，該顆按鍵自動橘白閃爍 + 2.25″ 螢幕顯示動態音柱。',
+  '6. 【🎧 0.0ms 零延遲聽自己 + 螢幕雙音錶】：WM8960 開啟類比旁路混音直入耳機（0 延遲無回音）；4.0″ 大螢幕常駐本機 Mic VU 音量表與 PGA 增益表。'
+], '#334155', 11.2);
+
+/* ================= 圖例與互動 ================= */
+const lg = document.getElementById('legend');
+const active = new Set();
+function refresh() {
+  document.querySelectorAll('[data-net]').forEach(n => {
+    if (!n.closest('svg')) return;
+    n.classList.toggle('hide', active.size > 0 && !active.has(n.dataset.net));
+  });
+  lg.querySelectorAll('.chip').forEach(c => c.classList.toggle('off', active.size > 0 && !active.has(c.dataset.k)));
+}
+Object.keys(NAMES).forEach(k => {
+  const c = document.createElement('span');
+  c.className = 'chip'; c.dataset.k = k;
+  c.style.borderColor = C[k]; c.style.color = C[k]; c.textContent = '● ' + NAMES[k];
+  c.onclick = () => { active.has(k) ? active.delete(k) : active.add(k); refresh(); };
+  lg.appendChild(c);
+});
+document.querySelectorAll('[data-z]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-z]').forEach(x => x.classList.remove('on')); b.classList.add('on');
+  S.style.width = b.dataset.z + '%';
+});
+</script>
+</body>
+</html>

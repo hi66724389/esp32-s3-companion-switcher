@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ESP32-S3 導播台 v2 & 36鍵 VBAN Intercom 主站 · 完整系統視覺化與內建 Web UI 互動原型</title>
+<style>
+  :root {
+    --bg: #0f172a; --card: #1e293b; --card2: #0b1120; --border: #334155;
+    --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --green: #22c55e;
+    --amber: #f59e0b; --red: #ef4444; --purple: #a855f7; --indigo: #6366f1;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; line-height: 1.5; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header { position: sticky; top: 0; z-index: 50; background: rgba(15,23,42,0.95); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 12px 20px; }
+  .top-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; max-width: 1480px; margin: 0 auto; }
+  .nav-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tab-btn { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-size: 13px; font-weight: 600; transition: .15s; }
+  .tab-btn.active, .tab-btn:hover { background: var(--accent); color: #0f172a; border-color: var(--accent); }
+  .container { max-width: 1480px; margin: 0 auto; padding: 20px; }
+  .sec { display: none; }
+  .sec.active { display: block; }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 18px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .card h2 { margin: 0 0 10px; font-size: 18px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+  .card h3 { margin: 12px 0 8px; font-size: 15px; color: #e2e8f0; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .b-green { background: rgba(34,197,94,.18); color: #4ade80; border: 1px solid rgba(34,197,94,.4); }
+  .b-amber { background: rgba(245,158,11,.18); color: #fbbf24; border: 1px solid rgba(245,158,11,.4); }
+  .b-blue { background: rgba(56,189,248,.18); color: #38bdf8; border: 1px solid rgba(56,189,248,.4); }
+  .b-purple { background: rgba(168,85,247,.18); color: #c084fc; border: 1px solid rgba(168,85,247,.4); }
+  .b-red { background: rgba(239,68,68,.18); color: #f87171; border: 1px solid rgba(239,68,68,.4); }
+
+  /* 面板視覺化模擬器 */
+  .panel-chassis { background: #090d16; border: 3px solid #475569; border-radius: 16px; padding: 18px; box-shadow: 0 12px 32px rgba(0,0,0,.6); }
+  .top-deck { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; margin-bottom: 18px; }
+  @media (max-width: 960px) { .top-deck { grid-template-columns: 1fr; } }
+  .big-lcd { background: #020617; border: 3px solid #1e40af; border-radius: 10px; padding: 12px; font-family: "Consolas", "Microsoft JhengHei", monospace; position: relative; }
+  .vu-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+  .vu-bar-wrap { flex: 1; height: 14px; background: #1e293b; border-radius: 4px; overflow: hidden; display: flex; border: 1px solid #334155; }
+  .vu-g { width: 62%; background: linear-gradient(90deg, #16a34a, #22c55e); }
+  .vu-y { width: 20%; background: #eab308; }
+  .vu-r { width: 8%; background: #ef4444; }
+  .ctrl-deck { background: #111827; border: 1px solid #374151; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+  .enc-row { display: flex; justify-content: space-around; align-items: center; gap: 8px; }
+  .knob { width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #475569, #0f172a); border: 3px solid #94a3b8; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; cursor: pointer; position: relative; }
+  .knob::after { content: ""; position: absolute; top: 5px; width: 3px; height: 12px; background: #38bdf8; border-radius: 2px; }
+  .lever-box { background: #1e293b; border: 2px solid #f59e0b; border-radius: 10px; padding: 8px 12px; text-align: center; }
+  .lever-btn { display: block; width: 100%; padding: 5px 8px; margin: 3px 0; border-radius: 5px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; cursor: pointer; font-size: 12px; font-weight: 700; }
+  .lever-btn.active-latch { background: #16a34a; color: #fff; border-color: #4ade80; }
+  .lever-btn.active-mute { background: #dc2626; color: #fff; border-color: #f87171; }
+  .lever-btn.active-ptt { background: #2563eb; color: #fff; border-color: #60a5fa; }
+
+  .pods-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 960px) { .pods-grid { grid-template-columns: 1fr; } }
+  .pod-box { background: #111827; border: 1.5px solid #334155; border-radius: 10px; padding: 10px; }
+  .strip-lcd { background: #022c22; border: 2px solid #0d9488; border-radius: 6px; padding: 4px 6px; margin-bottom: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-family: monospace; font-size: 11px; }
+  .lcd-cell { background: rgba(15,23,42,.85); border: 1px solid #115e59; border-radius: 3px; padding: 2px 4px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .keys-2x3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .k-btn { height: 46px; border-radius: 7px; border: 2px solid #475569; background: #1e293b; color: #f8fafc; font-size: 11.5px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: .12s; user-select: none; position: relative; }
+  .k-btn small { font-size: 9.5px; font-weight: 400; color: #94a3b8; }
+  .k-btn.st-sel { border-color: #06b6d4; background: rgba(6,182,212,.25); box-shadow: 0 0 10px rgba(6,182,212,.5); }
+  .k-btn.st-talk { border-color: #22c55e; background: rgba(34,197,94,.35); box-shadow: 0 0 14px rgba(34,197,94,.8); }
+  .k-btn.st-mute { border-color: #a855f7; background: rgba(168,85,247,.28); color: #e9d5ff; }
+  .k-btn.st-vox { animation: voxFlash .45s infinite alternate; }
+  @keyframes voxFlash {
+    from { border-color: #f97316; background: rgba(249,115,22,.18); }
+    to { border-color: #fde047; background: rgba(250,204,21,.45); box-shadow: 0 0 14px #f97316; }
+  }
+
+  /* 表格與表單 (Web UI 模擬) */
+  table.spec-tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  table.spec-tbl th, table.spec-tbl td { border: 1px solid var(--border); padding: 7px 10px; text-align: left; }
+  table.spec-tbl th { background: #0b1120; color: var(--accent); }
+  .form-row { display: grid; grid-template-columns: 180px 1fr; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 13px; }
+  input[type=text], input[type=number], select { width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 13px; }
+  .btn-save { padding: 8px 16px; border-radius: 7px; border: none; background: var(--green); color: #052e16; font-weight: 700; cursor: pointer; font-size: 13px; }
+  .btn-sub { padding: 7px 12px; border-radius: 7px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-weight: 600; cursor: pointer; font-size: 12px; }
+  .toast { position: fixed; bottom: 20px; right: 20px; background: #16a34a; color: #fff; padding: 10px 18px; border-radius: 8px; font-weight: 700; display: none; z-index: 100; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top-row">
+    <div>
+      <strong style="font-size:16px;color:#38bdf8">ESP32-S3 導播切台 (80鍵 v2) & 獨立 VBAN Intercom 主站 (36鍵) · 全功能互動規格中心</strong>
+      <div style="font-size:12px;color:var(--muted)">
+        快速連結：
+        <a href="./esp32s3_v2_and_intercom_printable.html" target="_blank">🖨️ 開啟 A4 橫式好列印工程圖冊 (5頁)</a> ｜
+        <a href="./esp32s3_all_wiring_big.html" target="_blank">🗺️ 80鍵單頁大圖</a> ｜
+        <a href="./vban_intercom_wiring_big.html" target="_blank">🗺️ 36鍵 Intercom 單頁大圖</a>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="showTab('tab-sim', this)">🎛️ 1. 互動式 Intercom 面板模擬器</button>
+      <button class="tab-btn" onclick="showTab('tab-webui', this)">🌐 2. ESP32-S3 內建 Web UI 設定後台 (含固定IP/名稱同步)</button>
+      <button class="tab-btn" onclick="showTab('tab-audio', this)">🎙️ 3. 四合一音訊前端 (XLR 5V·48V / 6.35mm / 小喇叭)</button>
+      <button class="tab-btn" onclick="showTab('tab-arch', this)">📐 4. 雙機架構與 VBAN 協議對照表</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ==================== TAB 1: 互動式 36 鍵 Intercom 主站模擬器 ==================== -->
+  <section id="tab-sim" class="sec active">
+    <div class="card" style="margin-bottom:16px">
+      <h2>🎛️ 36 鍵 (6×[2×3]) VBAN Intercom 主站 · 實機操作與燈號互動模擬器</h2>
+      <p style="margin:4px 0 10px;font-size:13px;color:var(--muted)">
+        💡 <strong>直接點點看下方按鍵與撥桿體驗邏輯</strong>：
+        ① <strong>單擊工位鍵</strong>＝勾選加入「🩵 部分同發 (Multi-Select)」名單；
+        ② <strong>雙擊工位鍵</strong>＝單獨將該工位來話靜音「🟣 🔇MUTE」；
+        ③ <strong>點右側三段式發話撥桿</strong>（上扳 Latch 持續發話 / 中置 MUTE / 下壓 PTT）＝對所有已勾選工位發話（亮 🟢 綠燈 + 同時自動切斷 🔊 內建小喇叭防嘯叫！）；
+        ④ 點擊「模擬 CAM2 來電講話 (VOX)」看 🟠 橘白自動閃燈！
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        <button class="btn-sub" onclick="toggleVoxDemo()">🟠 切換模擬：CAM2 與 AUD 講話進來 (VOX 自動閃燈)</button>
+        <button class="btn-sub" onclick="simSelectGroup([6,7,8,9,10,11])">📢 一鍵群選：GRP1 全攝影機群 (CAM1–6)</button>
+        <button class="btn-sub" onclick="simClearAll()">🧹 K32 清空所有同發選取 (CLR)</button>
+        <button class="btn-sub" onclick="openVkbModal()">⌨️ 在 4.0" 大螢幕彈出 ENC 虛擬鍵盤</button>
+      </div>
+
+      <div class="panel-chassis">
+        <!-- 上半部：4.0" Config 大螢幕 + 3 旋鈕 + 內建小喇叭 + 三段式發話撥桿 -->
+        <div class="top-deck">
+          <div class="big-lcd">
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e3a8a;padding-bottom:4px;margin-bottom:8px">
+              <span style="color:#38bdf8;font-weight:700">🖥️ 4.0" ST7796S (480×320) · 本機名：<span id="lcd-self-name" style="color:#fde047">導播主站 (DIR_MAIN)</span></span>
+              <span class="badge b-green" id="lcd-tx-badge">● STANDBY (MUTE)</span>
+            </div>
+            <!-- 本機 Mic 即時 VU 音量表 -->
+            <div class="vu-row">
+              <span style="width:105px;color:#4ade80;font-weight:700">🎙️ 本機 MIC VU:</span>
+              <div class="vu-bar-wrap">
+                <div class="vu-g" id="vu-fill" style="width:58%;transition:width .15s"></div>
+                <div class="vu-y" style="width:15%"></div>
+                <div class="vu-r" style="width:4%"></div>
+              </div>
+              <span style="width:95px;text-align:right;color:#fbbf24" id="vu-db-txt">-8.2 dBFS OK</span>
+            </div>
+            <!-- 本機 Mic PGA 增益表 + 0ms 自聽表 -->
+            <div class="vu-row">
+              <span style="width:105px;color:#38bdf8;font-weight:700">🎚️ PGA 增益表:</span>
+              <div class="vu-bar-wrap" style="background:#0f172a">
+                <div id="gain-fill" style="width:72%;background:linear-gradient(90deg,#0284c7,#38bdf8)"></div>
+              </div>
+              <span style="width:95px;text-align:right;color:#38bdf8" id="gain-txt">+22.5 dB</span>
+            </div>
+            <div class="vu-row">
+              <span style="width:105px;color:#c084fc;font-weight:700">🎧 0.0ms 自聽:</span>
+              <div style="flex:1;font-size:11.5px;color:#e2e8f0">
+                WM8960 硬體類比旁路 (Sidetone): <strong style="color:#4ade80" id="sidetone-txt">-6.0 dB (ON)</strong> ｜
+                輸入源: <strong style="color:#fde047" id="in-src-txt">MIC2: XLR (+48V 幻象)</strong>
+              </div>
+            </div>
+            <div style="background:#0f172a;border:1px solid #1e3a8a;border-radius:6px;padding:6px 8px;margin-top:6px;font-size:11.5px">
+              <div>🎯 <strong>目前同發選取 (Multi-Select)</strong>：<span id="sel-list-txt" style="color:#22d3ee">尚未勾選（單擊下方工位鍵即可多選）</span></div>
+              <div style="margin-top:3px;color:#94a3b8">📥 VBAN 8ch 總線拆分：<span style="color:#4ade80">Ch1-2→PGM</span> · <span style="color:#38bdf8">Split#1(Ch3)→192.168.1.101</span> · <span style="color:#38bdf8">Split#2(Ch4)→239.255.0.1</span></div>
+            </div>
+            <!-- 虛擬鍵盤彈窗 -->
+            <div id="vkb-modal" style="display:none;margin-top:8px;background:#1e293b;border:2px solid #38bdf8;border-radius:8px;padding:8px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+                <span style="color:#38bdf8;font-weight:700">⌨️ LVGL 虛擬鍵盤（轉動 ENC3 選字、按壓輸入、⏎ 確認、⎋ 離開）</span>
+                <a href="javascript:void(0)" onclick="openVkbModal()" style="color:#f87171">[⎋ 關閉]</a>
+              </div>
+              <div style="background:#020617;padding:4px 8px;border-radius:4px;margin-bottom:5px;color:#fde047">輸入工位/串流名稱: <span id="vkb-val">CAM1_JIB</span><span style="animation:voxFlash .5s infinite">_</span></div>
+              <div style="display:grid;grid-template-columns:repeat(10,1fr);gap:3px;text-align:center;font-size:11px">
+                <span style="background:#0f172a;padding:3px;border-radius:3px">1</span><span style="background:#0f172a;padding:3px;border-radius:3px">2</span><span style="background:#0f172a;padding:3px;border-radius:3px">3</span><span style="background:#0f172a;padding:3px;border-radius:3px">C</span><span style="background:#2563eb;color:#fff;padding:3px;border-radius:3px;font-weight:700">A</span><span style="background:#0f172a;padding:3px;border-radius:3px">M</span><span style="background:#0f172a;padding:3px;border-radius:3px">_</span><span style="background:#0f172a;padding:3px;border-radius:3px">.</span><span style="background:#16a34a;padding:3px;border-radius:3px">⏎</span><span style="background:#dc2626;padding:3px;border-radius:3px">⌫</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右側控制區：3 旋鈕 + 內建 1W 小喇叭 + 6 導覽鍵 + 三段式發話撥桿 -->
+          <div class="ctrl-deck">
+            <div class="enc-row">
+              <div style="text-align:center">
+                <div class="knob" onclick="toggleSpeaker()" title="點擊模擬按壓 S2 切換小喇叭">E1</div>
+                <div style="font-size:11px;margin-top:3px">耳機/喇叭音量<br><span style="color:#38bdf8;font-size:10px">(按S2切喇叭)</span></div>
+              </div>
+              <div style="text-align:center">
+                <div class="knob" onclick="cycleSidetone()" title="點擊調整 0ms 自聽音量">E2</div>
+                <div style="font-size:11px;margin-top:3px">PGM/自聽混音<br><span style="color:#4ade80;font-size:10px">(0ms Sidetone)</span></div>
+              </div>
+              <div style="text-align:center">
+                <div class="knob" onclick="cycleGain()" title="點擊調整 Mic PGA 增益">ENC3</div>
+                <div style="font-size:11px;margin-top:3px">選單 / Mic增益<br><span style="color:#fbbf24;font-size:10px">(點此加增益)</span></div>
+              </div>
+              <!-- 內建 1W 腔體小喇叭 -->
+              <div id="spk-box" style="background:#1e293b;border:2px solid #22c55e;border-radius:10px;padding:6px 10px;text-align:center;min-width:125px">
+                <div style="font-size:12px;font-weight:700" id="spk-title">🔊 內建 1W 小喇叭</div>
+                <div style="font-size:10.5px;color:#4ade80" id="spk-status">ON (正常監聽中)</div>
+                <div style="font-size:9.5px;color:#94a3b8">發話時自動 Cut 防嘯叫</div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1.1fr;gap:10px;align-items:center">
+              <!-- 6 顆導覽鍵 -->
+              <div style="background:#1e293b;padding:8px;border-radius:8px;text-align:center">
+                <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">Config 實體導覽鍵 (U5.H–U6.E)</div>
+                <div style="display:flex;justify-content:center;gap:4px;margin-bottom:4px">
+                  <span class="badge b-blue">▲上</span><span class="badge b-blue">▼下</span><span class="badge b-blue">◀左</span><span class="badge b-blue">▶右</span>
+                </div>
+                <div style="display:flex;justify-content:center;gap:6px">
+                  <span class="badge b-green" style="cursor:pointer" onclick="openVkbModal()">⏎ 進入/鍵盤</span>
+                  <span class="badge b-red">⎋ 離開</span>
+                </div>
+              </div>
+
+              <!-- 三段式發話撥桿開關 -->
+              <div class="lever-box">
+                <div style="font-size:11.5px;font-weight:700;color:#fbbf24;margin-bottom:4px">🕹️ 三段式發話撥桿 (U6.F / U6.G)</div>
+                <button id="lv-latch" class="lever-btn" onclick="setLever('LATCH')">▲ 上扳鎖定：持續發話 (LATCH)</button>
+                <button id="lv-mute" class="lever-btn active-mute" onclick="setLever('MUTE')">● 中間位置：麥克風靜音 (MUTE)</button>
+                <button id="lv-ptt" class="lever-btn" onmousedown="setLever('PTT')" onmouseup="setLever('MUTE')" onclick="setLever('PTT')">▼ 下壓彈回：按住發話 (PTT)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 下半部：6 組 2×3 呼叫工位 Pod (36 鍵 + 6 塊 2.25" 彩屏) -->
+        <div class="pods-grid" id="pods-container"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== TAB 2: 內建 Web UI 設定後台 (固定 IP / 裝置名稱 / NVS 儲存) ==================== -->
+  <section id="tab-webui" class="sec">
+    <div class="card">
+      <h2>🌐 ESP32-S3 內建 Web UI 設定後台原型（HTTP Port 80 + WebSocket 雙向同步 + NVS 永久儲存）</h2>
+      <p style="font-size:13px;color:var(--muted);margin-top:0">
+        兩台設備（<strong>80 鍵主導播台</strong> 與 <strong>36 鍵 VBAN Intercom 主站</strong>）皆內建此網頁後台。所有在 <strong>4.0" Config 大螢幕</strong> 能動的設定，在網頁裡 100% 都能設定；支援 <strong>固定 IP (Static IP)</strong>、<strong>VBAN 裝置名稱推播</strong>，修改下方「本機中文名稱」或「工位名稱」並按儲存，切回第 1 分頁就能看到螢幕名稱已經自動更新！
+      </p>
+
+      <div class="grid-2">
+        <!-- 左欄：裝置名稱與固定 IP 網路設定 -->
+        <div class="card" style="background:var(--card2)">
+          <h3>🏷️ 1. 裝置身分與 VBAN 名稱廣播設定</h3>
+          <div class="form-row">
+            <label>設備類型切換預覽：</label>
+            <select id="web-dev-role" onchange="switchWebRole()">
+              <option value="intercom">🎧 36 鍵 VBAN Intercom 主站 (http://intercom-main.local)</option>
+              <option value="switcher">🎬 80 鍵導播切換台 v2 (http://switcher.local)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>本機顯示名稱 (中文)：</label>
+            <input type="text" id="web-dev-name" value="導播主站 (DIR_MAIN)" />
+          </div>
+          <div class="form-row">
+            <label>VBAN Header streamname：</label>
+            <input type="text" id="web-stream-name" maxlength="16" value="DIR_MAIN_TALK" />
+          </div>
+          <div class="form-row">
+            <label>名稱顯示策略 (2.25"屏)：</label>
+            <select>
+              <option value="auto">自動顯示遠端 VBAN 傳來的裝置名稱 (推薦)</option>
+              <option value="local">強制使用本機自訂按鍵名稱</option>
+            </select>
+          </div>
+
+          <h3 style="margin-top:18px">🌐 2. W5500 有線網口與 Wi-Fi 固定 IP 設定 (Static IP / DHCP)</h3>
+          <div class="form-row">
+            <label>W5500 有線網口模式：</label>
+            <select id="eth-mode" onchange="document.getElementById('static-ip-fields').style.opacity = this.value==='static' ? '1' : '0.45'">
+              <option value="static" selected>固定 IP (Static IP · 廣電工程推薦)</option>
+              <option value="dhcp">DHCP 自動取得 IP</option>
+            </select>
+          </div>
+          <div id="static-ip-fields">
+            <div class="form-row"><label>固定 IP 位址：</label><input type="text" value="192.168.1.50" /></div>
+            <div class="form-row"><label>子網路遮罩 (Subnet)：</label><input type="text" value="255.255.255.0" /></div>
+            <div class="form-row"><label>預設閘道 (Gateway)：</label><input type="text" value="192.168.1.1" /></div>
+            <div class="form-row"><label>DNS 伺服器：</label><input type="text" value="8.8.8.8" /></div>
+          </div>
+          <div class="form-row"><label>Wi-Fi 備援 SSID / 密碼：</label><input type="text" value="OB_Van_5G_Backup / ********" /></div>
+          <div class="form-row"><label>Companion 主機 IP:Port：</label><input type="text" value="192.168.1.10 : 16622 (DEVICEID=esp32s3)" /></div>
+        </div>
+
+        <!-- 右欄：四合一音訊前端與 VBAN 路由映射 -->
+        <div class="card" style="background:var(--card2)">
+          <h3>🎙️ 3. 四合一音訊前端 (XLR 5V/48V · 6.35mm Mic/Line) & 自聽設定</h3>
+          <div class="form-row">
+            <label>目前啟用麥克風接口：</label>
+            <select id="web-mic-src">
+              <option value="MIC2: XLR (+48V 幻象)" selected>MIC 2：XLR 專業平衡口 — 開啟 +48V 幻象電源 (電容麥)</option>
+              <option value="MIC2: XLR (+5V 偏壓)">MIC 2：XLR 專業平衡口 — 開啟 +5V 偏壓模式 (會議鵝頸麥)</option>
+              <option value="MIC2: XLR (OFF 動圈)">MIC 2：XLR 專業平衡口 — OFF 無供電 (動圈麥)</option>
+              <option value="IN3: 6.35mm (MIC 高增益)">IN 3：6.35mm TRS 孔 — MIC 麥克風高增益模式 (+25dB)</option>
+              <option value="IN3: 6.35mm (LINE-IN -20dB)">IN 3：6.35mm TRS 孔 — LINE-IN 線路輸入模式 (投入 -20dB Pad)</option>
+              <option value="MIC1: 3.5mm 耳麥孔">MIC 1：3.5mm 耳麥麥克風孔 (內建 2.5V MICBIAS)</option>
+              <option value="MIC4: 面板機載 MEMS">MIC 4：面板內建機載類比 MEMS 麥克風 (免戴耳麥)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Mic PGA 前級增益：</label>
+            <input type="text" id="web-pga-val" value="+22.5 dB (Noise Gate: -45 dBFS)" />
+          </div>
+          <div class="form-row">
+            <label>0.0ms 類比自聽 (Sidetone)：</label>
+            <select>
+              <option selected>開啟 (-6.0 dB · WM8960 硬體類比旁路直入耳機)</option>
+              <option>開啟 (0.0 dB)</option>
+              <option>關閉 (OFF)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>內建 1W 小喇叭防嘯叫：</label>
+            <select>
+              <option selected>發話時自動切斷小喇叭 (Auto Speaker Cut · 強烈推薦)</option>
+              <option>發話時自動衰減 -20dB (Speaker Dim)</option>
+            </select>
+          </div>
+
+          <h3 style="margin-top:18px">🔀 4. VBAN 遠端工位名稱同步與 8ch 拆分規則 (測試改名上屏)</h3>
+          <div class="form-row">
+            <label>修改 Pod2 K6 (CAM1) 名稱：</label>
+            <input type="text" id="web-cam1-name" value="CAM1 一機(阿明)" />
+          </div>
+          <div class="form-row">
+            <label>修改 Pod1 K3 (AUD) 名稱：</label>
+            <input type="text" id="web-aud-name" value="AUD 音控主桌" />
+          </div>
+          <div class="form-row">
+            <label>8ch 總線拆分 Split #1：</label>
+            <input type="text" value="Bus8ch [Ch3] ➔ 192.168.1.101:6980 (Stream: CAM1_IFB)" />
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn-save" onclick="saveWebConfig()">💾 儲存至 ESP32 NVS 並即時同步至螢幕</button>
+            <button class="btn-sub" onclick="alert('已匯出 switcher_intercom_nvs_backup.json！')">📤 匯出 JSON 設定檔</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== TAB 3: 四合一音訊前端詳解 ==================== -->
+  <section id="tab-audio" class="sec">
+    <div class="card">
+      <h2>🎙️ 雙機通用「四合一專業音訊輸入前端」＋ 0.0ms 自聽 ＋ 1W 小喇叭防嘯叫架構</h2>
+      <p style="font-size:13px;color:var(--muted)">
+        <strong>80 鍵主導播台</strong> 與 <strong>36 鍵 VBAN Intercom 主站</strong> 均搭載完全相同的音訊前端設計，由 `MCP23017` 擴充腳控制繼電器與 `WM8960` I2C 暫存器，<strong>零額外佔用 ESP32-S3 GPIO</strong>：
+      </p>
+      <table class="spec-tbl">
+        <thead>
+          <tr>
+            <th>輸入通道</th>
+            <th>實體插座</th>
+            <th>支援供電 / 增益模式</th>
+            <th>硬體切換腳位 (80鍵台 / 36鍵台)</th>
+            <th>關鍵保護電路與路徑</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>MIC 1</strong></td>
+            <td>3.5mm TRS/TRRS 耳麥孔</td>
+            <td>內建 <code>MICBIAS (~2.5V)</code></td>
+            <td><code>WM8960</code> 暫存器切換 <code>LINPUT1</code></td>
+            <td>透過 2.2kΩ 偏壓電阻與 1µF 隔直電容進入 <code>LINPUT1</code></td>
+          </tr>
+          <tr>
+            <td><strong>MIC 2</strong></td>
+            <td><strong>XLR 3-Pin 平衡母座</strong><br>(Combo 複合座外圈)</td>
+            <td><span class="badge b-green">OFF 動圈</span> <span class="badge b-amber">+5V 鵝頸電容</span> <span class="badge b-red">+48V 幻象電源</span></td>
+            <td>80鍵：<code>MCP#2 GPA4(48V) / GPA5(5V)</code><br>36鍵：<code>MCP#1 GPB3(48V) / GPB4(5V)</code></td>
+            <td>5V→48V 升壓經配對 <strong>6.81kΩ (0.1%)×2</strong> 送 Pin 2/3；後級串 <strong>22µF/63V 隔直電容 + 1N4148 鉗位二極體</strong> 進 <code>INA217</code> 平衡前級 → <code>LINPUT2</code></td>
+          </tr>
+          <tr>
+            <td><strong>IN 3</strong></td>
+            <td><strong>6.35mm (1/4") TRS 孔</strong><br>(Combo 複合座中心孔)</td>
+            <td><span class="badge b-blue">MIC 高增益模式 (+25dB)</span><br><span class="badge b-purple">LINE-IN 線路模式 (-20dB Pad)</span></td>
+            <td>80鍵：<code>MCP#2 GPA6</code><br>36鍵：<code>MCP#1 GPB5</code></td>
+            <td><strong>中心 6.35mm 孔與外圈 XLR 的 48V 實體隔離</strong>，插外部調音台絕不燒毀；LINE-IN 模式自動投入 <code>-20dB</code> 分壓衰減網並將 PGA 設為 0dB</td>
+          </tr>
+          <tr>
+            <td><strong>MIC 4</strong></td>
+            <td><strong>面板機載 MEMS 麥克風</strong></td>
+            <td>3.3V 常駐低底噪供電</td>
+            <td><code>WM8960</code> 暫存器切換 <code>LINPUT3</code></td>
+            <td>採用<strong>類比輸出型 MEMS</strong> 接入 <code>LINPUT3</code>，免戴耳麥即可按撥桿對講</td>
+          </tr>
+          <tr>
+            <td><strong>OUT 1 / 2</strong></td>
+            <td><strong>耳機孔 + 🔊 1W 腔體小喇叭</strong></td>
+            <td>耳機含 <strong>0.0ms 類比自聽</strong>；小喇叭含<strong>發話自動 Cut 防嘯叫</strong></td>
+            <td><code>WM8960 HP_L/R</code> & <code>SPK_LP/LN</code></td>
+            <td>開啟 <code>R47/R48 LI2LO/RI2RO</code> 讓 Mic 在晶片內以類比路徑 0.0ms 混入耳機；壓下發話撥桿時自動關閉 <code>SPKVOL</code> 防止喇叭與麥克風嘯叫</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ==================== TAB 4: 雙機規格總對照 ==================== -->
+  <section id="tab-arch" class="sec">
+    <div class="card">
+      <h2>📐 兩台設備（80 鍵主導播台 v2 vs 36 鍵獨立 VBAN Intercom 主站）規格總對照</h2>
+      <table class="spec-tbl">
+        <thead>
+          <tr>
+            <th>規格項目</th>
+            <th>🎬 設備一：80 鍵導播切換台 (v2 旗艦版)</th>
+            <th>🎧 設備二：36 鍵獨立 VBAN 路由拆分 & Intercom 主站</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>主控晶片</strong></td>
+            <td><code>ESP32-S3-DevKitC-1 (N16R8)</code> 雙核 240MHz</td>
+            <td><code>ESP32-S3-DevKitC-1 (N16R8)</code> 雙核 240MHz</td>
+          </tr>
+          <tr>
+            <td><strong>模組化按鍵與小彩屏</strong></td>
+            <td><strong>13 組 2×3 Pod + 2 大鍵 = 80 鍵</strong> + <strong>15 塊 2.25" ST7789P 彩屏</strong></td>
+            <td><strong>6 組 2×3 Pod = 36 鍵</strong> + <strong>6 塊 2.25" ST7789P 彩屏</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Config 大螢幕與導覽</strong></td>
+            <td><strong>4.0" 480×320 ST7796S</strong> + <code>ENC11</code> + <code>▲▼◀▶ ⏎ ⎋</code> 6 鍵 + 虛擬鍵盤</td>
+            <td><strong>4.0" 480×320 ST7796S (常駐 Mic 音量/增益表)</strong> + <code>ENC3</code> + <code>▲▼◀▶ ⏎ ⎋</code> + 虛擬鍵盤</td>
+          </tr>
+          <tr>
+            <td><strong>專用發話機構</strong></td>
+            <td>可指定任意按鍵為 Talkback PTT</td>
+            <td><strong>🕹️ 三段式搖頭發話撥桿 (上扳 Latch / 中置 MUTE / 下壓彈回 PTT)</strong> + 背板腳踏 PTT</td>
+          </tr>
+          <tr>
+            <td><strong>SPI 匯流排架構</strong></td>
+            <td><code>SPI2</code> 共用 (W5500 + 15 小屏 + 1 大屏，分時排程)</td>
+            <td><strong>★ 雙 SPI 徹底分流：<code>SPI2</code> 100% 獨佔 W5500；<code>SPI3</code> 專供 7 塊彩屏 (零音訊干擾)</strong></td>
+          </tr>
+          <tr>
+            <td><strong>擴充晶片數量</strong></td>
+            <td><strong>15 片 <code>74HC165</code> (120 路輸入)</strong> + <strong>2 顆 <code>MCP23017</code> (32 路輸出)</strong></td>
+            <td><strong>6 片 <code>74HC165</code> (48 路輸入滿載)</strong> + <strong>1 顆 <code>MCP23017</code> (16 路輸出)</strong></td>
+          </tr>
+          <tr>
+            <td><strong>音訊與 VBAN 功能</strong></td>
+            <td><code>WM8960</code> 四合一麥克風 (含 XLR 5V/48V、6.35mm Mic/Line) + 耳機 + VBAN 收發</td>
+            <td>同左 + <strong>🔊 內建 1W 小喇叭防嘯叫、VOX 來電有聲閃燈、單獨 Mute 別人、群發/可選部分同發、8ch 拆分轉發</strong></td>
+          </tr>
+          <tr>
+            <td><strong>內建 Web UI 與名稱同步</strong></td>
+            <td colspan="2">兩台皆內建 <strong>HTTP Port 80 Web UI 設定網頁（支援固定 IP / DHCP、NVS 永久儲存、與 4.0" Config 螢幕 100% 雙向同步、VBAN 裝置名稱自動上屏）</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast-msg">✅ 已儲存至 ESP32-S3 NVS 記憶體，並透過 VBAN 同步更新螢幕名稱！</div>
+
+<script>
+const POD_DATA = [
+  { title: 'Pod 1 · 導播與核心組 (LCD #1 · GPA0)', keys: [
+    { id:0, code:'DIR', name:'DIR 導播' }, { id:1, code:'AD', name:'AD 副導' }, { id:2, code:'PROD', name:'PROD 製作' },
+    { id:3, code:'AUD', name:'AUD 音控主桌' }, { id:4, code:'CG', name:'CG 字幕' }, { id:5, code:'VTR', name:'VTR 慢動作' }
+  ]},
+  { title: 'Pod 2 · 攝影機工位群 A (LCD #2 · GPA1)', keys: [
+    { id:6, code:'CAM1', name:'CAM1 一機(阿明)' }, { id:7, code:'CAM2', name:'CAM2 二機' }, { id:8, code:'CAM3', name:'CAM3 三機' },
+    { id:9, code:'CAM4', name:'CAM4 四機' }, { id:10, code:'CAM5', name:'CAM5 五機' }, { id:11, code:'CAM6', name:'CAM6 六機' }
+  ]},
+  { title: 'Pod 3 · 特種機位群 B (LCD #3 · GPA2)', keys: [
+    { id:12, code:'CAM7', name:'CAM7 七機' }, { id:13, code:'CAM8', name:'CAM8 八機' }, { id:14, code:'JIB', name:'JIB 大搖臂' },
+    { id:15, code:'STEAD', name:'STEAD 穩定器' }, { id:16, code:'DRONE', name:'DRONE 航拍' }, { id:17, code:'POV', name:'POV 微距' }
+  ]},
+  { title: 'Pod 4 · 舞台與燈光組 (LCD #4 · GPA3)', keys: [
+    { id:18, code:'STG', name:'STG 舞台總監' }, { id:19, code:'LGT', name:'LGT 燈光控台' }, { id:20, code:'LED', name:'LED 大屏控台' },
+    { id:21, code:'HOST', name:'HOST 主持人' }, { id:22, code:'GUEST', name:'GUEST 來賓室' }, { id:23, code:'FLOOR', name:'FLOOR 現場FD' }
+  ]},
+  { title: 'Pod 5 · 群組群發與耳返 (LCD #5 · GPA4)', keys: [
+    { id:24, code:'ALL', name:'📢 ALL 全體廣播' }, { id:25, code:'GRP1', name:'📢 GRP1 全攝影' }, { id:26, code:'GRP2', name:'📢 GRP2 技術群' },
+    { id:27, code:'GRP3', name:'📢 GRP3 舞台群' }, { id:28, code:'IFB1', name:'🎧 IFB1 主持耳返' }, { id:29, code:'IFB2', name:'🎧 IFB2 來賓耳返' }
+  ]},
+  { title: 'Pod 6 · 同發/禁聽/VBAN拆分 (LCD #6 · GPA5)', keys: [
+    { id:30, code:'MULTI', name:'🎯 MULTI 同發模式' }, { id:31, code:'MUTE_IN', name:'🔇 禁聽對方模式' }, { id:32, code:'CLR', name:'🧹 CLR 清空選取' },
+    { id:33, code:'SPL1', name:'🔀 Split#1 轉發' }, { id:34, code:'SPL2', name:'🔀 Split#2 轉發' }, { id:35, code:'DUCK', name:'🔉 DUCK 自動閃避' }
+  ]}
+];
+
+const selectedSet = new Set([6, 9, 3]); // 預設示範已勾選 CAM1, CAM4, AUD
+const mutedSet = new Set([8]);          // 預設示範 CAM3 被單獨 Mute
+const voxSet = new Set([7]);            // 預設示範 CAM2 正在講話閃燈
+let leverState = 'MUTE';
+let spkOn = true;
+
+function renderPods() {
+  const wrap = document.getElementById('pods-container');
+  wrap.innerHTML = '';
+  POD_DATA.forEach(pod => {
+    const pDiv = document.createElement('div');
+    pDiv.className = 'pod-box';
+    pDiv.innerHTML = `<div style="font-size:11.5px;font-weight:700;color:#94a3b8;margin-bottom:5px">${pod.title}</div>`;
+    const lcd = document.createElement('div');
+    lcd.className = 'strip-lcd';
+    const grid = document.createElement('div');
+    grid.className = 'keys-2x3';
+
+    pod.keys.forEach(k => {
+      const isMuted = mutedSet.has(k.id);
+      const isSel = selectedSet.has(k.id);
+      const isVox = voxSet.has(k.id) && !isMuted;
+      const isTalking = isSel && (leverState === 'LATCH' || leverState === 'PTT');
+
+      // 2.25" 彩屏對應格
+      const cell = document.createElement('div');
+      cell.className = 'lcd-cell';
+      cell.style.color = isMuted ? '#f87171' : (isTalking ? '#4ade80' : (isVox ? '#fde047' : '#5eead4'));
+      cell.textContent = (isMuted ? '🔇' : (isVox ? '🔊' : '')) + k.name;
+      lcd.appendChild(cell);
+
+      // 實體按鍵
+      const btn = document.createElement('button');
+      btn.className = 'k-btn' + (isTalking ? ' st-talk' : (isSel ? ' st-sel' : '')) + (isMuted ? ' st-mute' : '') + (isVox ? ' st-vox' : '');
+      btn.innerHTML = `<span>${k.name}</span><small>${isMuted ? '🔇已禁聽(雙擊解開)' : (isTalking ? '🟢發話中 TALK' : (isSel ? '🩵已選同發' : (isVox ? '🟠來電有聲 VOX' : 'K'+k.id)))}</small>`;
+      btn.onclick = () => {
+        if (k.id === 32) { simClearAll(); return; }
+        if (selectedSet.has(k.id)) selectedSet.delete(k.id); else selectedSet.add(k.id);
+        updateStatusUI();
+      };
+      btn.ondblclick = (ev) => {
+        ev.preventDefault();
+        if (mutedSet.has(k.id)) mutedSet.delete(k.id); else mutedSet.add(k.id);
+        updateStatusUI();
+      };
+      grid.appendChild(btn);
+    });
+
+    pDiv.appendChild(lcd);
+    pDiv.appendChild(grid);
+    wrap.appendChild(pDiv);
+  });
+}
+
+function updateStatusUI() {
+  const names = [];
+  POD_DATA.forEach(p => p.keys.forEach(k => { if (selectedSet.has(k.id)) names.push(k.name); }));
+  document.getElementById('sel-list-txt').textContent = names.length ? names.join(' + ') + ` (共 ${names.length} 工位)` : '尚未勾選（單擊工位鍵可多選同發）';
+
+  const badge = document.getElementById('lcd-tx-badge');
+  const spkBox = document.getElementById('spk-box');
+  const spkSt = document.getElementById('spk-status');
+
+  if (leverState === 'LATCH' || leverState === 'PTT') {
+    badge.className = 'badge b-red';
+    badge.textContent = `🔴 ON-AIR 發話中 (${leverState})`;
+    spkBox.style.borderColor = '#ef4444';
+    spkSt.style.color = '#f87171';
+    spkSt.textContent = '🔇 發話自動消音 (Auto-Cut)';
+  } else {
+    badge.className = 'badge b-green';
+    badge.textContent = '● STANDBY (MUTE)';
+    spkBox.style.borderColor = spkOn ? '#22c55e' : '#64748b';
+    spkSt.style.color = spkOn ? '#4ade80' : '#94a3b8';
+    spkSt.textContent = spkOn ? 'ON (正常監聽中)' : 'OFF (已手動關閉)';
+  }
+  renderPods();
+}
+
+function setLever(mode) {
+  leverState = mode;
+  document.getElementById('lv-latch').className = 'lever-btn' + (mode === 'LATCH' ? ' active-latch' : '');
+  document.getElementById('lv-mute').className  = 'lever-btn' + (mode === 'MUTE' ? ' active-mute' : '');
+  document.getElementById('lv-ptt').className   = 'lever-btn' + (mode === 'PTT' ? ' active-ptt' : '');
+  updateStatusUI();
+}
+
+function toggleVoxDemo() {
+  if (voxSet.has(7)) { voxSet.clear(); } else { voxSet.add(7); voxSet.add(3); }
+  updateStatusUI();
+}
+function simSelectGroup(ids) {
+  selectedSet.clear();
+  ids.forEach(id => selectedSet.add(id));
+  updateStatusUI();
+}
+function simClearAll() {
+  selectedSet.clear();
+  updateStatusUI();
+}
+function openVkbModal() {
+  const m = document.getElementById('vkb-modal');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+function toggleSpeaker() { spkOn = !spkOn; updateStatusUI(); }
+let gainIdx = 0; const gains = ['+22.5 dB', '+27.0 dB', '+15.0 dB', '+30.0 dB'];
+function cycleGain() {
+  gainIdx = (gainIdx + 1) % gains.length;
+  document.getElementById('gain-txt').textContent = gains[gainIdx];
+}
+let stIdx = 0; const sts = ['-6.0 dB (ON)', '0.0 dB (ON)', '-12.0 dB (ON)', 'OFF (靜音)'];
+function cycleSidetone() {
+  stIdx = (stIdx + 1) % sts.length;
+  document.getElementById('sidetone-txt').textContent = sts[stIdx];
+}
+function showTab(id, btn) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+function saveWebConfig() {
+  document.getElementById('lcd-self-name').textContent = document.getElementById('web-dev-name').value;
+  document.getElementById('in-src-txt').textContent = document.getElementById('web-mic-src').value;
+  POD_DATA[1].keys[0].name = document.getElementById('web-cam1-name').value;
+  POD_DATA[0].keys[3].name = document.getElementById('web-aud-name').value;
+  updateStatusUI();
+  const t = document.getElementById('toast-msg');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3200);
+}
+function switchWebRole() {
+  const role = document.getElementById('web-dev-role').value;
+  if (role === 'switcher') {
+    document.getElementById('web-dev-name').value = '80鍵主導播台 (SWITCHER_1)';
+    document.getElementById('web-stream-name').value = 'PGM_DIRECTOR';
+  } else {
+    document.getElementById('web-dev-name').value = '導播主站 (DIR_MAIN)';
+    document.getElementById('web-stream-name').value = 'DIR_MAIN_TALK';
+  }
+}
+
+updateStatusUI();
+</script>
+</body>
+</html>
