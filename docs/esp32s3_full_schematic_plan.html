@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32-S3 導播切換台 (80鍵 13×[2×3]+2 + 10×EC11 + 15×2.25" 彩屏) · 滿版接線計畫總電路圖</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    .schematic-grid-bg {
+      background-image:
+        linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .pin-chip {
+      height: 26px;
+    }
+    .wire-path {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: opacity 0.16s ease, stroke-width 0.16s ease;
+    }
+    .net-dim {
+      opacity: 0.22;
+    }
+    .net-focus {
+      box-shadow: 0 0 0 2px #f59e0b;
+    }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased m-0 p-3 w-full min-h-screen">
+
+  <!-- Full-Bleed Sticky Top Engineering Bar -->
+  <header class="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 mb-3 shadow-sm">
+    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-2 pb-2 border-b border-[var(--border)]">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+        <h1 class="text-sm font-bold tracking-tight m-0">ESP32-S3 導播切換台 (80鍵 + 10×EC11 + 15×2.25" 長條彩屏) · 滿版接線計畫總電路圖</h1>
+        <span class="text-xs px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-[var(--muted-foreground)]">ESP32-S3-DevKitC-1 N16R8</span>
+      </div>
+
+      <!-- GPIO Budget Badges + Zoom Controls -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-xs px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--background)] font-mono">排針：<strong>44 Pin</strong> (J1×22 + J3×22)</span>
+        <span class="text-xs px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--background)] font-mono">總 GPIO：<strong>36 支</strong></span>
+        <span class="text-xs px-2 py-0.5 rounded border border-emerald-500/50 bg-emerald-500/10 text-emerald-500 font-mono font-semibold">已用：28 支 (24外設+4串口)</span>
+        <span class="text-xs px-2 py-0.5 rounded border border-cyan-500/50 bg-cyan-500/10 text-cyan-500 font-mono font-semibold">空腳：1 支 (G2)</span>
+        <span class="text-xs px-2 py-0.5 rounded border border-rose-500/50 bg-rose-500/10 text-rose-500 font-mono font-semibold">禁區：7 支 (PSRAM/Boot)</span>
+        <div class="flex items-center gap-1 ml-1 pl-2 border-l border-[var(--border)]" id="zoom-controls">
+          <button type="button" data-width="100%" class="zoom-btn text-xs px-2 py-0.5 rounded border cursor-pointer">100% 滿版</button>
+          <button type="button" data-width="118%" class="zoom-btn text-xs px-2 py-0.5 rounded border cursor-pointer">118% 加寬</button>
+          <button type="button" data-width="138%" class="zoom-btn text-xs px-2 py-0.5 rounded border cursor-pointer">138% 細節</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Net / Bus Filter Pills -->
+    <div class="flex items-center gap-1.5 flex-wrap pt-2" id="net-filters"></div>
+
+    <!-- Active Net Readout Banner -->
+    <div class="mt-2 bg-[var(--background)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-2 flex-wrap">
+      <div class="text-xs font-mono" id="active-net-banner">
+        🔍 全電路總覽：滑鼠移過或點擊任一總線按鈕、MCU 排針或外設方塊，即可高亮對應正交走線與接線規範
+      </div>
+      <div class="text-xs text-[var(--muted-foreground)] shrink-0">
+        模數分離原則：左側高頻 SPI / 右側類比 T-Bar · 星形單點接地
+      </div>
+    </div>
+  </header>
+
+  <!-- Scrollable Full-Bleed Blueprint Canvas -->
+  <div class="w-full overflow-x-auto pb-2">
+    <div id="blueprint-canvas" style="width: 100%;" class="space-y-3">
+
+      <!-- ==================== SECTION A: FULL-BLEED 3-COLUMN SCHEMATIC + DYNAMIC SVG WIRES ==================== -->
+      <section class="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 schematic-grid-bg shadow-sm">
+        <div class="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-[var(--border)]">
+          <div class="flex items-center gap-2">
+            <span class="text-xs px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-500 font-semibold font-mono">SECTION A</span>
+            <h2 class="text-xs font-bold m-0">ESP32-S3 (44-Pin) 核心正交走線總圖 · 電源 / I2C / SPI / 編碼器 / ADC / 74HC165 / RMT 燈鏈</h2>
+          </div>
+          <span class="text-xs font-mono text-[var(--muted-foreground)]">USB 連接埠朝下 · Wi-Fi 天線朝上</span>
+        </div>
+
+        <div id="schematic-stage" class="relative w-full grid grid-cols-1 lg:grid-cols-[1.05fr_430px_1.05fr] gap-6 xl:gap-12 items-start">
+          <!-- Dynamic Orthogonal SVG Wire Overlay (Desktop 3-col view) -->
+          <svg id="svg-wires" class="hidden lg:block absolute inset-0 w-full h-full pointer-events-none z-10"></svg>
+
+          <!-- ===== LEFT COLUMN: J1-SIDE PERIPHERALS ===== -->
+          <div class="flex flex-col gap-3 relative z-20">
+
+            <!-- Block L1: Power Distribution & Star GND -->
+            <div class="mod-card bg-[var(--background)] border border-[var(--border)] rounded-xl p-2.5" data-nets="pwr">
+              <div class="flex items-center justify-between gap-1 mb-1.5 pb-1 border-b border-[var(--border)]">
+                <span class="text-xs font-bold text-rose-500">⚡ 獨立電源與星形共地分配</span>
+                <span class="text-xs font-mono text-[var(--muted-foreground)]">5V/5A–6A + 3.3V</span>
+              </div>
+              <div class="space-y-1 text-xs">
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>主控 3.3V 邏輯供電 (供 13×74HC165 / T-Bar / 上拉排阻)</span>
+                  <span id="port-j1-1" data-wire="j1-1" class="font-mono font-semibold text-rose-500 shrink-0">3V3 ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>外加 <strong>5V→3.3V/2A 降壓模組</strong> (供 15×2.25" 彩屏 ~330mA + MCP23017)</span>
+                  <span id="port-j1-2" data-wire="j1-2" class="font-mono font-semibold text-rose-500 shrink-0">3V3 ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>外部 5V/5A–6A ➔ 470μF/10V ➔ 80燈鏈三點供電 &amp; 手輪 VCC &amp; 3.3V降壓</span>
+                  <span id="port-j1-21" data-wire="j1-21" class="font-mono font-semibold text-rose-500 shrink-0">5V ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>Star GND 星形單點總地線 (嚴禁與大電流燈帶串環路)</span>
+                  <span id="port-j1-22" data-wire="j1-22" class="font-mono font-semibold text-[var(--muted-foreground)] shrink-0">GND ──▶</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Block L2: Jog Wheel -->
+            <div class="mod-card bg-[var(--background)] border border-[var(--border)] rounded-xl p-2.5" data-nets="enc">
+              <div class="flex items-center justify-between gap-1 mb-1.5 pb-1 border-b border-[var(--border)]">
+                <span class="text-xs font-bold text-purple-500">🎛️ 時間軸滾盤 Jog (MPG 100PPR / 3806)</span>
+                <span class="text-xs font-mono text-purple-500">硬體 PCNT0</span>
+              </div>
+              <div class="space-y-1 text-xs">
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>手輪 A 相 + <strong>4.7kΩ 上拉至 3.3V</strong></span>
+                  <span id="port-j1-4" data-wire="j1-4" class="font-mono font-semibold text-purple-500 shrink-0">A相 ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>手輪 B 相 + <strong>4.7kΩ 上拉至 3.3V</strong> (KEY 90)</span>
+                  <span id="port-j1-5" data-wire="j1-5" class="font-mono font-semibold text-purple-500 shrink-0">B相 ──▶</span>
+                </div>
+                <div class="text-xs text-rose-500 font-medium px-1">
+                  ⚠️ NPN 開漏型供電接 5V，信號上拉嚴禁接 5V（必接 3.3V）！
+                </div>
+              </div>
+            </div>
+
+            <!-- Block L3: EC11 Encoders 1-3 -->
+            <div class="mod-card bg-[var(--background)] border border-[var(--border)] rounded-xl p-2.5" data-nets="enc">
+              <div class="flex items-center justify-between gap-1 mb-1.5 pb-1 border-b border-[var(--border)]">
+                <span class="text-xs font-bold text-purple-500">🎛️ EC11 旋鈕 1～3 (PCNT1~3)</span>
+                <span class="text-xs font-mono text-[var(--muted-foreground)]">按壓進 U11·A~C</span>
+              </div>
+              <div class="space-y-1 text-xs">
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>ENC1 主音量 (KEY 80) · <strong>A 相</strong> (C腳接地)</span>
+                  <span id="port-j1-6" data-wire="j1-6" class="font-mono font-semibold text-purple-500 shrink-0">E1_A ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>ENC1 主音量 · <strong>B 相</strong> + S2 接 U11·A (Pin 11)</span>
+                  <span id="port-j1-7" data-wire="j1-7" class="font-mono font-semibold text-purple-500 shrink-0">E1_B ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>ENC2 主持麥1 (KEY 81) · <strong>A 相</strong> (並 10nF 防抖)</span>
+                  <span id="port-j1-8" data-wire="j1-8" class="font-mono font-semibold text-purple-500 shrink-0">E2_A ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>ENC2 主持麥1 · <strong>B 相</strong> + S2 接 U11·B (Pin 12)</span>
+                  <span id="port-j1-9" data-wire="j1-9" class="font-mono font-semibold text-purple-500 shrink-0">E2_B ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>ENC3 來賓麥2 (KEY 82) · <strong>A 相</strong></span>
+                  <span id="port-j1-10" data-wire="j1-10" class="font-mono font-semibold text-purple-500 shrink-0">E3_A ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>ENC3 來賓麥2 · <strong>B 相</strong> + S2 接 U11·C (Pin 13)</span>
+                  <span id="port-j1-11" data-wire="j1-11" class="font-mono font-semibold text-purple-500 shrink-0">E3_B ──▶</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Block L4: I2C Bus (OLED + Mandatory MCP23017 CS Expander) -->
+            <div class="mod-card bg-[var(--background)] border border-[var(--border)] rounded-xl p-2.5" data-nets="i2c">
+              <div class="flex items-center justify-between gap-1 mb-1.5 pb-1 border-b border-[var(--border)]">
+                <span class="text-xs font-bold text-teal-500">📟 I2C 共享匯流排 (400kHz · MCP23017 滿載 CS1–15+RES)</span>
+                <span class="text-xs font-mono text-teal-500">4.7kΩ 上拉 3.3V</span>
+              </div>
+              <div class="space-y-1 text-xs">
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span><strong>MCP23017 (0x20)</strong>：<strong>GPA0–7 = CS1–8 · GPB0–6 = CS9–15</strong> · <strong>GPB7 = 共用 RES</strong> (16/16 滿載) + 備用 OLED</span>
+                  <span id="port-j1-12" data-wire="j1-12" class="font-mono font-semibold text-teal-500 shrink-0">SDA ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>時脈線 SCL (MCP23017 RESET 腳須 10kΩ 上拉至 3.3V · A0/A1/A2 接地)</span>
+                  <span id="port-j1-15" data-wire="j1-15" class="font-mono font-semibold text-teal-500 shrink-0">SCL ──▶</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Block L5: W5500 + 15× 2.25" ST7789P Shared SPI2 -->
+            <div class="mod-card bg-[var(--background)] border border-[var(--border)] rounded-xl p-2.5" data-nets="eth">
+              <div class="flex items-center justify-between gap-1 mb-1.5 pb-1 border-b border-[var(--border)]">
+                <span class="text-xs font-bold text-blue-500">🌐 W5500 + 15× 2.25" ST7789P 共用 SPI2</span>
+                <span class="text-xs font-mono text-blue-500">CS1–15 來自 MCP23017</span>
+              </div>
+              <div class="space-y-1 text-xs">
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>W5500 專屬片選 SCS (LCD 1–15 CS 接 MCP GPA0–7 / GPB0–6)</span>
+                  <span id="port-j1-16" data-wire="j1-16" class="font-mono font-semibold text-blue-500 shrink-0">SCS ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-sky-500/40">
+                  <span><strong>MOSI 共享</strong>：W5500 + <strong>並聯 15× ST7789P SDA</strong> (加 33Ω 阻尼)</span>
+                  <span id="port-j1-17" data-wire="j1-17" class="font-mono font-semibold text-blue-500 shrink-0">MOSI ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-sky-500/40">
+                  <span><strong>SCLK 共享</strong>：W5500 + <strong>並聯 15× ST7789P SCL</strong> (DC 接 G47)</span>
+                  <span id="port-j1-18" data-wire="j1-18" class="font-mono font-semibold text-blue-500 shrink-0">SCLK ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>FSPIQ 主入從出 (僅接 W5500；ST7789P 無 MISO)</span>
+                  <span id="port-j1-19" data-wire="j1-19" class="font-mono font-semibold text-blue-500 shrink-0">MISO ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span>拔線快速備援中斷 · 10-Pin: Pin 6 | USR-ES1: Pin 1-6</span>
+                  <span id="port-j1-20" data-wire="j1-20" class="font-mono font-semibold text-blue-500 shrink-0">INTn ──▶</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-blue-500/40">
+                  <span>W5500 RSTn (跨底至 G21)；15×彩屏 <strong>RES 並接 GPB7</strong></span>
+                  <span id="port-j3-18" data-wire="j3-18" class="font-mono font-semibold text-blue-500 shrink-0">RSTn ⤵</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== CENTER COLUMN: ESP32-S3 44-PIN MCU PACKAGE ===== -->
+          <div id="mcu-package" class="bg-[var(--background)] border-2 border-[var(--border)] rounded-xl p-2 relative z-20 shadow-sm">
+            <div class="grid grid-cols-[1fr_84px_1fr] gap-1.5 items-stretch">
+              <!-- J1 Header Column (1-22) -->
+              <div class="flex flex-col gap-0.5" id="mcu-j1"></div>
+
+              <!-- MCU Core Silhouette -->
+              <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-1.5 flex flex-col justify-between items-center text-center">
+                <div class="w-full py-1 px-1 rounded bg-[var(--background)] border border-[var(--border)] text-xs font-semibold leading-tight">
+                  PCB 天線<br/><span class="text-[var(--muted-foreground)] font-normal">Wi-Fi/BLE</span>
+                </div>
+                <div class="my-auto w-full py-3 px-1 rounded-lg border-2 border-emerald-500/50 bg-[var(--background)] flex flex-col items-center gap-1">
+                  <div class="text-xs font-bold leading-tight">ESP32-S3</div>
+                  <div class="text-xs font-mono text-emerald-500 font-semibold">N16R8</div>
+                  <div class="text-xs text-[var(--muted-foreground)] leading-tight">DevKitC-1<br/>44-Pin<br/>(36 GPIO)</div>
+                </div>
+                <div class="w-full flex flex-col gap-1">
+                  <div class="py-1 rounded border border-cyan-500/60 bg-cyan-500/10 text-xs font-mono font-semibold text-cyan-500">USB OTG</div>
+                  <div class="py-1 rounded border border-[var(--border)] bg-[var(--background)] text-xs font-mono">UART0</div>
+                </div>
+              </div>
+
+              <!-- J3 Header Column (1-22) -->
+              <div class="flex flex-col gap-0.5" id="mcu-j3"></div>
+            </div>
+          </div>
+
+          <!-- ===== RIGHT COLUMN: J3-SIDE PERIPHERALS ===== -->
+          <div class="flex flex-col gap-3 relative z-20">
+
+            <!-- Block R1: UART0 + GND -->
+            <div class="mod-card bg-[var(--background)] border border-[var(--border)] rounded-xl p-2.5" data-nets="pwr">
+              <div class="flex items-center justify-between gap-1 mb-1.5 pb-1 border-b border-[var(--border)]">
+                <span class="text-xs font-bold text-[var(--foreground)]">🔌 右側主地線、UART0 除錯與原生 USB</span>
+                <span class="text-xs font-mono text-[var(--muted-foreground)]">板載介面</span>
+              </div>
+              <div class="space-y-1 text-xs">
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span id="port-j3-1" data-wire="j3-1" class="font-mono font-semibold text-[var(--muted-foreground)] shrink-0">◀── GND</span>
+                  <span>右側上角星形地線匯接點 (與 J3-21/22 共同匯入 GND 匯流排)</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span id="port-j3-2" data-wire="j3-2" class="font-mono font-semibold text-slate-400 shrink-0">◀── TX/RX</span>
+                  <span>UART0 (GPIO 43 TX / 44 RX)：板載 CH343/CP2102 燒錄除錯口</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span id="port-j3-19" data-wire="j3-19" class="font-mono font-semibold text-slate-400 shrink-0">◀── USB</span>
+                  <span>USB-C OTG (GPIO 19 D- / GPIO 20 D+)：TinyUSB 虛擬網卡直連 Companion</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span id="port-j3-21" data-wire="j3-21" class="font-mono font-semibold text-[var(--muted-foreground)] shrink-0">◀── GND×2</span>
+                  <span>USB 端就近低阻抗回流地線 (J3-21 &amp; J3-22)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Block R2: T-Bar & Free ADC/INTA -->
+            <div class="mod-card bg-[var(--background)] border border-[var(--border)] rounded-xl p-2.5" data-nets="adc">
+              <div class="flex items-center justify-between gap-1 mb-1.5 pb-1 border-b border-[var(--border)]">
+                <span class="text-xs font-bold text-amber-500">🎚️ T-Bar 推桿與可用空腳 (ADC1)</span>
+                <span class="text-xs font-mono text-amber-500">Wi-Fi 不衝突</span>
+              </div>
+              <div class="space-y-1 text-xs">
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span id="port-j3-4" data-wire="j3-4" class="font-mono font-semibold text-amber-500 shrink-0">◀── ADC0</span>
+                  <span><strong>T-Bar (B10K 線性)</strong>：Pin 3=3.3V · Pin 1=GND · Pin 2 接 G1 + <strong>100nF 對地濾波</strong></span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-emerald-500/40">
+                  <span id="port-j3-5" data-wire="j3-5" class="font-mono font-semibold text-emerald-500 shrink-0">◀── ADC1</span>
+                  <span><strong>空腳 GPIO 2</strong>：可接第 2 支音量推桿 (ADC1_CH1)，或作 MCP23017 INTA 中斷</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Block R3: 74HC165 Scan Bus -->
+            <div class="mod-card bg-[var(--background)] border border-[var(--border)] rounded-xl p-2.5" data-nets="hc165">
+              <div class="flex items-center justify-between gap-1 mb-1.5 pb-1 border-b border-[var(--border)]">
+                <span class="text-xs font-bold text-emerald-500">🟢 13× SN74HC165D 按鍵與旋鈕總線 (104 路)</span>
+                <span class="text-xs font-mono text-emerald-500">2kHz 掃描 · 僅 3 GPIO</span>
+              </div>
+              <div class="space-y-1 text-xs">
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span id="port-j3-6" data-wire="j3-6" class="font-mono font-semibold text-emerald-500 shrink-0">◀── DATA</span>
+                  <span><strong>GPIO 42</strong> ◀── 末片 <strong>U13 Pin 9 (QH)</strong> 串列讀入 (U1–U10 80鍵 + U11–U13 旋鈕)</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span id="port-j3-7" data-wire="j3-7" class="font-mono font-semibold text-emerald-500 shrink-0">◀── PL</span>
+                  <span><strong>GPIO 41</strong> ──▶ 並聯全部 <strong>U1–U13 Pin 1 (SH/LD)</strong> 並行鎖存觸發</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span id="port-j3-8" data-wire="j3-8" class="font-mono font-semibold text-emerald-500 shrink-0">◀── CLK</span>
+                  <span><strong>GPIO 40</strong> ──▶ 並聯全部 <strong>U1–U13 Pin 2 (CLK)</strong> 移位時脈 (4MHz)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Block R4: EC11 Encoder 4 + U11-U13 Expanded Encoders 5-10 -->
+            <div class="mod-card bg-[var(--background)] border border-[var(--border)] rounded-xl p-2.5" data-nets="enc">
+              <div class="flex items-center justify-between gap-1 mb-1.5 pb-1 border-b border-[var(--border)]">
+                <span class="text-xs font-bold text-purple-500">🎛️ EC11 旋鈕 4～10 (直連 + U11–U13 · K83–89)</span>
+                <span class="text-xs font-mono text-purple-500">0 GPIO 擴充</span>
+              </div>
+              <div class="space-y-1 text-xs">
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span id="port-j3-9" data-wire="j3-9" class="font-mono font-semibold text-purple-500 shrink-0">◀── E4_B</span>
+                  <span>旋鈕 4 (VTR音源 K83) <strong>B 相</strong> + 10kΩ 上拉 (S2 進 U11·D)</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-0.5 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span id="port-j3-10" data-wire="j3-10" class="font-mono font-semibold text-purple-500 shrink-0">◀── E4_A</span>
+                  <span>旋鈕 4 <strong>A 相</strong>；E5–10 (K84–89) A/B 與 E1–10 壓進 U11–U13</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Block R5: SK6812 LED Chain (80) + GPIO 47 LCD Shared DC -->
+            <div class="mod-card bg-[var(--background)] border border-[var(--border)] rounded-xl p-2.5" data-nets="led eth">
+              <div class="flex items-center justify-between gap-1 mb-1.5 pb-1 border-b border-[var(--border)]">
+                <span class="text-xs font-bold text-cyan-500">🌈 SK6812 燈鏈 (80 顆) &amp; 彩屏 DC (G47)</span>
+                <span class="text-xs font-mono text-cyan-500">硬體 RMT · 80 燈珠</span>
+              </div>
+              <div class="space-y-1 text-xs">
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)]">
+                  <span id="port-j3-16" data-wire="j3-16" class="font-mono font-semibold text-cyan-500 shrink-0">◀── RMT</span>
+                  <span><strong>GPIO 48</strong> ➔ 串 <strong>330Ω 電阻</strong> ➔ (長線加 74AHCT125) ➔ <strong>LED #0 DIN</strong> (#0–#79)</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 px-1.5 py-1 rounded bg-[var(--card)] border border-sky-500/40">
+                  <span id="port-j3-17" data-wire="j3-17" class="font-mono font-semibold text-sky-500 shrink-0">◀── LCD DC</span>
+                  <span><strong>GPIO 47</strong>：並聯 <strong>15× 2.25" ST7789P 共用 DC 腳</strong> (CS1–15 由 MCP GPA0–7/GPB0–6 片選)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Block R6: Restricted & Strapping Reference -->
+            <div class="mod-card bg-[var(--background)] border border-rose-500/40 rounded-xl p-2.5" data-nets="ban">
+              <div class="flex items-center justify-between gap-1 mb-1 pb-1 border-b border-rose-500/30">
+                <span class="text-xs font-bold text-rose-500">⛔ 嚴禁外接的 7 支禁區腳 (請貼標籤遮蔽)</span>
+              </div>
+              <div class="text-xs text-[var(--muted-foreground)] space-y-0.5 leading-snug">
+                <div>• <strong>GPIO 35 / 36 / 37</strong> (J3-11~13)：N16R8 內部 8MB Octal PSRAM 佔用，外接會直接當機。</div>
+                <div>• <strong>GPIO 0 / 3 / 45 / 46</strong> (J3-14~15, J1-13~14)：開機 Strapping 啟動腳，誤拉電位無法啟動。</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==================== SECTION B: FULL-WIDTH 13× SN74HC165D DAISY CHAIN ==================== -->
+      <section class="mod-card w-full bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 shadow-sm" data-nets="hc165">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-2 mb-2 border-b border-[var(--border)]">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500 font-semibold font-mono">SECTION B</span>
+            <h2 class="text-xs font-bold m-0">13× SN74HC165D 級聯全景接線圖 (U1 ➔ U13 串聯 104 路輸入 · 共用 GPIO 40 / 41 / 42 · 2kHz 掃描)</h2>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap text-xs font-mono">
+            <span class="px-1.5 py-0.5 rounded bg-[var(--background)] border border-emerald-500/40 text-emerald-500">全部 Pin 1 (SH/LD) = GPIO 41</span>
+            <span class="px-1.5 py-0.5 rounded bg-[var(--background)] border border-emerald-500/40 text-emerald-500">全部 Pin 2 (CLK) = GPIO 40</span>
+            <span class="px-1.5 py-0.5 rounded bg-[var(--background)] border border-[var(--border)]">全部 Pin 15 (/CE) = GND</span>
+            <span class="px-1.5 py-0.5 rounded bg-[var(--background)] border border-[var(--border)]">每片 Pin 16 = 3.3V + 100nF + A103J (10kΩ排阻)</span>
+          </div>
+        </div>
+
+        <!-- 13-Chip Continuous Chain Grid (7 + 6) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2" id="hc165-chain-grid"></div>
+      </section>
+
+      <!-- ==================== SECTION C: 80× SK6812 SNAKE POWER PLAN + 5-STAGE CHECKLIST ==================== -->
+      <div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+        <!-- LED Snake & 3-Point Power Injection -->
+        <section class="mod-card lg:col-span-7 bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 shadow-sm" data-nets="led pwr">
+          <div class="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-[var(--border)] flex-wrap">
+            <div class="flex items-center gap-2">
+              <span class="text-xs px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-500 font-semibold font-mono">SECTION C1</span>
+              <h2 class="text-xs font-bold m-0">80× SK6812 Mini-E 燈鏈蛇形走線與「首/中/尾 三點 5V 補電計畫」</h2>
+            </div>
+            <span class="text-xs font-mono text-amber-500 font-semibold">全白峰值 4.8A · 建議獨立 5V/5A–6A</span>
+          </div>
+
+          <!-- Signal Flow Summary Bar -->
+          <div class="bg-[var(--background)] border border-[var(--border)] rounded-lg p-2 mb-2 text-xs font-mono flex items-center justify-between gap-2 flex-wrap">
+            <span>資料流向：<strong class="text-cyan-500">GPIO 48</strong> ──▶ <strong class="text-amber-500">330Ω 電阻</strong> ──▶ (選配 74AHCT125) ──▶ <strong class="text-cyan-500">LED #0 DIN</strong> ➔ ... ➔ <strong>LED #79 (AUTO)</strong></span>
+            <span class="text-[var(--muted-foreground)]">首端並接 470μF/10V 電解電容</span>
+          </div>
+
+          <!-- 6-Zone LED Snake Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 mb-2" id="led-zones-grid"></div>
+
+          <!-- 3 Power Injection Points & Strip Installation Notes -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div class="bg-[var(--background)] border border-rose-500/50 rounded-lg p-2 text-xs">
+              <div class="font-bold text-rose-500 mb-0.5">⚡ 補電點 ①：首端 (LED #0)</div>
+              <div class="text-[var(--muted-foreground)]">電源 +5V / GND 直入，並聯 <strong>470μF/10V</strong> 吸收開機浪湧電容。</div>
+            </div>
+            <div class="bg-[var(--background)] border border-rose-500/50 rounded-lg p-2 text-xs">
+              <div class="font-bold text-rose-500 mb-0.5">⚡ 補電點 ②：中段 (LED #35)</div>
+              <div class="text-[var(--muted-foreground)]">PGM Pod 6 末顆 AUX2 直拉 5V/GND（20AWG 粗線），防後半段壓降偏紅。</div>
+            </div>
+            <div class="bg-[var(--background)] border border-rose-500/50 rounded-lg p-2 text-xs">
+              <div class="font-bold text-rose-500 mb-0.5">⚡ 補電點 ③：尾端 (LED #79)</div>
+              <div class="text-[var(--muted-foreground)]">T-Bar AUTO 末顆補電閉環；另分一路 <strong>5V→3.3V/2A 降壓</strong> 供 15×彩屏 (~330mA)。</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5-Stage Construction & Multimeter Verification Checklist -->
+        <section class="lg:col-span-5 bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-[var(--border)]">
+              <div class="flex items-center gap-2">
+                <span class="text-xs px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 font-semibold font-mono">SECTION C2</span>
+                <h2 class="text-xs font-bold m-0">五階段接線施工與上電前量測檢核表</h2>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="checklist-progress" class="text-xs font-mono font-semibold text-emerald-500">0 / 10 完成</span>
+                <button type="button" id="reset-checklist" class="text-xs px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--background)] hover:border-[var(--primary)] cursor-pointer">重設</button>
+              </div>
+            </div>
+            <div class="space-y-1.5 text-xs" id="checklist-items"></div>
+          </div>
+
+          <div class="mt-2 pt-2 border-t border-[var(--border)] text-xs text-[var(--muted-foreground)] flex items-center justify-between gap-2 flex-wrap">
+            <span>⚠️ <strong>斷電測量鐵則</strong>：上電前必用萬用表測量 `5V-GND` 與 `3V3-GND` 阻值均大於 `10kΩ`</span>
+            <span class="font-mono">Baud / Satellite: TCP 16622</span>
+          </div>
+        </section>
+
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ==================== 1. ESP32-S3 44-PIN DATA ====================
+    const j1Pins = [
+      { pin: 'J1-1', gpio: '3V3', net: 'pwr', wire: 'j1-1', color: 'text-rose-500', bg: 'bg-rose-500/10 border-rose-500/40', label: '3.3V 邏輯供電' },
+      { pin: 'J1-2', gpio: '3V3', net: 'pwr', wire: 'j1-2', color: 'text-rose-500', bg: 'bg-rose-500/10 border-rose-500/40', label: '3.3V 並聯分流' },
+      { pin: 'J1-3', gpio: 'RST', net: 'pwr', wire: null, color: 'text-[var(--muted-foreground)]', bg: 'bg-[var(--card)] border-[var(--border)]', label: 'EN 系統復位按鈕' },
+      { pin: 'J1-4', gpio: 'GPIO 4', net: 'enc', wire: 'j1-4', color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/40', label: 'Jog A相 (PCNT0)' },
+      { pin: 'J1-5', gpio: 'GPIO 5', net: 'enc', wire: 'j1-5', color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/40', label: 'Jog B相 (PCNT0)' },
+      { pin: 'J1-6', gpio: 'GPIO 6', net: 'enc', wire: 'j1-6', color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/40', label: 'ENC1 A相 (PCNT1)' },
+      { pin: 'J1-7', gpio: 'GPIO 7', net: 'enc', wire: 'j1-7', color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/40', label: 'ENC1 B相 (PCNT1)' },
+      { pin: 'J1-8', gpio: 'GPIO 15', net: 'enc', wire: 'j1-8', color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/40', label: 'ENC2 A相 (PCNT2)' },
+      { pin: 'J1-9', gpio: 'GPIO 16', net: 'enc', wire: 'j1-9', color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/40', label: 'ENC2 B相 (PCNT2)' },
+      { pin: 'J1-10', gpio: 'GPIO 17', net: 'enc', wire: 'j1-10', color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/40', label: 'ENC3 A相 (PCNT3)' },
+      { pin: 'J1-11', gpio: 'GPIO 18', net: 'enc', wire: 'j1-11', color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/40', label: 'ENC3 B相 (PCNT3)' },
+      { pin: 'J1-12', gpio: 'GPIO 8', net: 'i2c', wire: 'j1-12', color: 'text-teal-500', bg: 'bg-teal-500/10 border-teal-500/40', label: 'I2C SDA (OLED+MCP)' },
+      { pin: 'J1-13', gpio: 'GPIO 3', net: 'ban', wire: null, color: 'text-rose-500', bg: 'bg-rose-500/15 border-rose-500/60', label: '⛔ Strapping 禁用' },
+      { pin: 'J1-14', gpio: 'GPIO 46', net: 'ban', wire: null, color: 'text-rose-500', bg: 'bg-rose-500/15 border-rose-500/60', label: '⛔ Strapping 禁用' },
+      { pin: 'J1-15', gpio: 'GPIO 9', net: 'i2c', wire: 'j1-15', color: 'text-teal-500', bg: 'bg-teal-500/10 border-teal-500/40', label: 'I2C SCL (OLED+MCP)' },
+      { pin: 'J1-16', gpio: 'GPIO 10', net: 'eth', wire: 'j1-16', color: 'text-blue-500', bg: 'bg-blue-500/10 border-blue-500/40', label: 'W5500 SCS / CS' },
+      { pin: 'J1-17', gpio: 'GPIO 11', net: 'eth', wire: 'j1-17', color: 'text-blue-500', bg: 'bg-blue-500/10 border-blue-500/40', label: 'SPI2 MOSI (網口+15彩屏)' },
+      { pin: 'J1-18', gpio: 'GPIO 12', net: 'eth', wire: 'j1-18', color: 'text-blue-500', bg: 'bg-blue-500/10 border-blue-500/40', label: 'SPI2 SCLK (網口+15彩屏)' },
+      { pin: 'J1-19', gpio: 'GPIO 13', net: 'eth', wire: 'j1-19', color: 'text-blue-500', bg: 'bg-blue-500/10 border-blue-500/40', label: 'W5500 MISO (FSPIQ)' },
+      { pin: 'J1-20', gpio: 'GPIO 14', net: 'eth', wire: 'j1-20', color: 'text-blue-500', bg: 'bg-blue-500/10 border-blue-500/40', label: 'W5500 INTn 中斷' },
+      { pin: 'J1-21', gpio: '5V', net: 'pwr', wire: 'j1-21', color: 'text-rose-500', bg: 'bg-rose-500/10 border-rose-500/40', label: '5V 主電源輸入軌' },
+      { pin: 'J1-22', gpio: 'GND', net: 'pwr', wire: 'j1-22', color: 'text-[var(--muted-foreground)]', bg: 'bg-[var(--card)] border-[var(--border)]', label: 'GND 左側星形地' }
+    ];
+
+    const j3Pins = [
+      { pin: 'J3-1', gpio: 'GND', net: 'pwr', wire: 'j3-1', color: 'text-[var(--muted-foreground)]', bg: 'bg-[var(--card)] border-[var(--border)]', label: 'GND 右側星形地' },
+      { pin: 'J3-2', gpio: 'GPIO 43', net: 'pwr', wire: 'j3-2', color: 'text-slate-400', bg: 'bg-[var(--card)] border-[var(--border)]', label: 'UART0 TX (除錯燒錄)' },
+      { pin: 'J3-3', gpio: 'GPIO 44', net: 'pwr', wire: 'j3-2', color: 'text-slate-400', bg: 'bg-[var(--card)] border-[var(--border)]', label: 'UART0 RX (除錯燒錄)' },
+      { pin: 'J3-4', gpio: 'GPIO 1', net: 'adc', wire: 'j3-4', color: 'text-amber-500', bg: 'bg-amber-500/10 border-amber-500/40', label: 'T-Bar (ADC1_CH0)' },
+      { pin: 'J3-5', gpio: 'GPIO 2', net: 'adc', wire: 'j3-5', color: 'text-emerald-500', bg: 'bg-emerald-500/10 border-emerald-500/40', label: '✅ 空腳 ADC1_CH1/INTA' },
+      { pin: 'J3-6', gpio: 'GPIO 42', net: 'hc165', wire: 'j3-6', color: 'text-emerald-500', bg: 'bg-emerald-500/10 border-emerald-500/40', label: '74HC165 QH (U13.P9)' },
+      { pin: 'J3-7', gpio: 'GPIO 41', net: 'hc165', wire: 'j3-7', color: 'text-emerald-500', bg: 'bg-emerald-500/10 border-emerald-500/40', label: '74HC165 SH/LD (U1–13)' },
+      { pin: 'J3-8', gpio: 'GPIO 40', net: 'hc165', wire: 'j3-8', color: 'text-emerald-500', bg: 'bg-emerald-500/10 border-emerald-500/40', label: '74HC165 CLK (4MHz)' },
+      { pin: 'J3-9', gpio: 'GPIO 39', net: 'enc', wire: 'j3-9', color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/40', label: 'ENC4 B相 (VTR音源)' },
+      { pin: 'J3-10', gpio: 'GPIO 38', net: 'enc', wire: 'j3-10', color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/40', label: 'ENC4 A相 (K83)' },
+      { pin: 'J3-11', gpio: 'GPIO 37', net: 'ban', wire: null, color: 'text-rose-500', bg: 'bg-rose-500/15 border-rose-500/60', label: '⛔ Octal PSRAM 禁接' },
+      { pin: 'J3-12', gpio: 'GPIO 36', net: 'ban', wire: null, color: 'text-rose-500', bg: 'bg-rose-500/15 border-rose-500/60', label: '⛔ Octal PSRAM 禁接' },
+      { pin: 'J3-13', gpio: 'GPIO 35', net: 'ban', wire: null, color: 'text-rose-500', bg: 'bg-rose-500/15 border-rose-500/60', label: '⛔ Octal PSRAM 禁接' },
+      { pin: 'J3-14', gpio: 'GPIO 0', net: 'ban', wire: null, color: 'text-rose-500', bg: 'bg-rose-500/15 border-rose-500/60', label: '⛔ Strapping BOOT 禁用' },
+      { pin: 'J3-15', gpio: 'GPIO 45', net: 'ban', wire: null, color: 'text-rose-500', bg: 'bg-rose-500/15 border-rose-500/60', label: '⛔ Strapping VDD_SPI' },
+      { pin: 'J3-16', gpio: 'GPIO 48', net: 'led', wire: 'j3-16', color: 'text-cyan-500', bg: 'bg-cyan-500/10 border-cyan-500/40', label: 'SK6812 燈鏈 (330Ω)' },
+      { pin: 'J3-17', gpio: 'GPIO 47', net: 'eth', wire: 'j3-17', color: 'text-sky-500', bg: 'bg-sky-500/10 border-sky-500/40', label: '🖥️ 15×長條彩屏 共用 DC' },
+      { pin: 'J3-18', gpio: 'GPIO 21', net: 'eth', wire: 'j3-18', color: 'text-blue-500', bg: 'bg-blue-500/10 border-blue-500/40', label: 'W5500 RSTn (LCD RES=GPB7)' },
+      { pin: 'J3-19', gpio: 'GPIO 20', net: 'pwr', wire: 'j3-19', color: 'text-slate-400', bg: 'bg-[var(--card)] border-[var(--border)]', label: '原生 USB D+ (直連)' },
+      { pin: 'J3-20', gpio: 'GPIO 19', net: 'pwr', wire: 'j3-19', color: 'text-slate-400', bg: 'bg-[var(--card)] border-[var(--border)]', label: '原生 USB D- (直連)' },
+      { pin: 'J3-21', gpio: 'GND', net: 'pwr', wire: 'j3-21', color: 'text-[var(--muted-foreground)]', bg: 'bg-[var(--card)] border-[var(--border)]', label: 'GND 右下回流地' },
+      { pin: 'J3-22', gpio: 'GND', net: 'pwr', wire: 'j3-21', color: 'text-[var(--muted-foreground)]', bg: 'bg-[var(--card)] border-[var(--border)]', label: 'GND 右下回流地' }
+    ];
+
+    // ==================== 2. NET FILTER DEFINITIONS & WIRE METADATA ====================
+    const netFilters = [
+      { id: 'all', label: '🔍 全電路總覽 (All Nets)', info: '全電路總覽：顯示 80 鍵 (13×高2寬3模組+CUT/AUTO) + 10×EC11 + 15×2.25" 長條彩屏正交接線，點擊分類按鈕可聚焦檢查。' },
+      { id: 'pwr', label: '⚡ 電源與共地 (5V/3.3V 2A/GND)', info: '電源規劃：80×SK6812 與手輪使用外部 5V/5A–6A；15×彩屏另走 5V→3.3V/2A 降壓模組 (~330mA)；所有地線匯入星形單點 GND。' },
+      { id: 'hc165', label: '🟢 13×74HC165 總線 (G40/41/42)', info: '2kHz 掃描鏈：U1–U13 共 13 片僅佔 GPIO 40/41/42；涵蓋 80 鍵 (U1–U10) + 10 旋鈕壓 + E5–10 旋轉 (U11–U13) + 2 備用。' },
+      { id: 'led', label: '🌈 SK6812 80燈鏈 (G48/330Ω)', info: 'RGB 背光：GPIO 48 串聯 330Ω 電阻進 LED #0 DIN (#0–#79)；於 #0 (首)、#35 (PGM末)、#79 (T-Bar尾) 三點併聯 5V 補電。' },
+      { id: 'enc', label: '🎛️ 10×EC11 + Jog (直連 + U11–U13)', info: '旋鈕與滾盤：Jog+E1–4 佔 10 支 GPIO；E5–10 A/B 與 E1–10 下壓進 U11–U13 (2kHz 定時器讀取，0 額外 GPIO)！' },
+      { id: 'adc', label: '🎚️ T-Bar + 唯一空腳 G2', info: 'T-Bar (B10K) 接 GPIO 1 (ADC1_CH0) 並聯 100nF 對地濾波電容；GPIO 2 為唯一空閒 GPIO（可接第 2 推桿或 MCP INTA）。' },
+      { id: 'eth', label: '🌐 SPI2 網口 + 15×長條彩屏 (G10~14,21,47)', info: '共用 SPI2 匯流排：MOSI(G11) 與 SCLK(G12) 共享供 W5500 與 15× ST7789P；GPIO 47 (J3-17) 共用 DC；CS1–15 由 MCP 滿載片選。' },
+      { id: 'i2c', label: '📟 MCP23017 (CS1–15+RES) + OLED (G8/9)', info: 'I2C 匯流排 (400kHz)：G8(SDA)/G9(SCL) 接 MCP23017 (0x20)，GPA0–7=CS1–8、GPB0–6=CS9–15、GPB7=共用 RES（16/16 滿載）。' },
+      { id: 'ban', label: '⛔ 禁區腳位 (PSRAM / Strapping)', info: '⛔ 保護區：G35/36/37 接內部 8MB Octal PSRAM；G0/3/45/46 為 Strapping 啟動腳，焊接時應貼膠帶標記勿接線！' }
+    ];
+
+    const wireColors = {
+      pwr: '#f43f5e',
+      hc165: '#10b981',
+      led: '#06b6d4',
+      enc: '#a855f7',
+      adc: '#f59e0b',
+      eth: '#3b82f6',
+      i2c: '#14b8a6',
+      ban: '#e11d48'
+    };
+
+    const wiresSpec = [
+      // Left J1 wires: side 'L', lane offset (0..n) staggers vertical trunk cleanly
+      { id: 'j1-1', side: 'L', net: 'pwr', portId: 'port-j1-1', mcuPinId: 'mcu-j1-1', lane: 0 },
+      { id: 'j1-2', side: 'L', net: 'pwr', portId: 'port-j1-2', mcuPinId: 'mcu-j1-2', lane: 1 },
+      { id: 'j1-4', side: 'L', net: 'enc', portId: 'port-j1-4', mcuPinId: 'mcu-j1-4', lane: 2 },
+      { id: 'j1-5', side: 'L', net: 'enc', portId: 'port-j1-5', mcuPinId: 'mcu-j1-5', lane: 3 },
+      { id: 'j1-6', side: 'L', net: 'enc', portId: 'port-j1-6', mcuPinId: 'mcu-j1-6', lane: 4 },
+      { id: 'j1-7', side: 'L', net: 'enc', portId: 'port-j1-7', mcuPinId: 'mcu-j1-7', lane: 5 },
+      { id: 'j1-8', side: 'L', net: 'enc', portId: 'port-j1-8', mcuPinId: 'mcu-j1-8', lane: 6 },
+      { id: 'j1-9', side: 'L', net: 'enc', portId: 'port-j1-9', mcuPinId: 'mcu-j1-9', lane: 7 },
+      { id: 'j1-10', side: 'L', net: 'enc', portId: 'port-j1-10', mcuPinId: 'mcu-j1-10', lane: 8 },
+      { id: 'j1-11', side: 'L', net: 'enc', portId: 'port-j1-11', mcuPinId: 'mcu-j1-11', lane: 9 },
+      { id: 'j1-12', side: 'L', net: 'i2c', portId: 'port-j1-12', mcuPinId: 'mcu-j1-12', lane: 0 },
+      { id: 'j1-15', side: 'L', net: 'i2c', portId: 'port-j1-15', mcuPinId: 'mcu-j1-15', lane: 1 },
+      { id: 'j1-16', side: 'L', net: 'eth', portId: 'port-j1-16', mcuPinId: 'mcu-j1-16', lane: 2 },
+      { id: 'j1-17', side: 'L', net: 'eth', portId: 'port-j1-17', mcuPinId: 'mcu-j1-17', lane: 3 },
+      { id: 'j1-18', side: 'L', net: 'eth', portId: 'port-j1-18', mcuPinId: 'mcu-j1-18', lane: 4 },
+      { id: 'j1-19', side: 'L', net: 'eth', portId: 'port-j1-19', mcuPinId: 'mcu-j1-19', lane: 5 },
+      { id: 'j1-20', side: 'L', net: 'eth', portId: 'port-j1-20', mcuPinId: 'mcu-j1-20', lane: 6 },
+      { id: 'j1-21', side: 'L', net: 'pwr', portId: 'port-j1-21', mcuPinId: 'mcu-j1-21', lane: 7 },
+      { id: 'j1-22', side: 'L', net: 'pwr', portId: 'port-j1-22', mcuPinId: 'mcu-j1-22', lane: 8 },
+
+      // Right J3 wires
+      { id: 'j3-1', side: 'R', net: 'pwr', portId: 'port-j3-1', mcuPinId: 'mcu-j3-1', lane: 0 },
+      { id: 'j3-2', side: 'R', net: 'pwr', portId: 'port-j3-2', mcuPinId: 'mcu-j3-2', lane: 1 },
+      { id: 'j3-4', side: 'R', net: 'adc', portId: 'port-j3-4', mcuPinId: 'mcu-j3-4', lane: 2 },
+      { id: 'j3-5', side: 'R', net: 'adc', portId: 'port-j3-5', mcuPinId: 'mcu-j3-5', lane: 3 },
+      { id: 'j3-6', side: 'R', net: 'hc165', portId: 'port-j3-6', mcuPinId: 'mcu-j3-6', lane: 4 },
+      { id: 'j3-7', side: 'R', net: 'hc165', portId: 'port-j3-7', mcuPinId: 'mcu-j3-7', lane: 5 },
+      { id: 'j3-8', side: 'R', net: 'hc165', portId: 'port-j3-8', mcuPinId: 'mcu-j3-8', lane: 6 },
+      { id: 'j3-9', side: 'R', net: 'enc', portId: 'port-j3-9', mcuPinId: 'mcu-j3-9', lane: 2 },
+      { id: 'j3-10', side: 'R', net: 'enc', portId: 'port-j3-10', mcuPinId: 'mcu-j3-10', lane: 3 },
+      { id: 'j3-16', side: 'R', net: 'led', portId: 'port-j3-16', mcuPinId: 'mcu-j3-16', lane: 4 },
+      { id: 'j3-17', side: 'R', net: 'eth', portId: 'port-j3-17', mcuPinId: 'mcu-j3-17', lane: 5 },
+      { id: 'j3-19', side: 'R', net: 'pwr', portId: 'port-j3-19', mcuPinId: 'mcu-j3-19', lane: 6 },
+      { id: 'j3-21', side: 'R', net: 'pwr', portId: 'port-j3-21', mcuPinId: 'mcu-j3-21', lane: 7 },
+
+      // Cross-under route for W5500 RST (Left card -> Bottom below MCU -> J3-18)
+      { id: 'j3-18', side: 'UNDER', net: 'eth', portId: 'port-j3-18', mcuPinId: 'mcu-j3-18', lane: 8 }
+    ];
+
+    // ==================== 3. 13x 74HC165 CASCADE DATA ====================
+    const hc165Chips = [
+      { id: 'U1', zone: 'PVW Pod7+Pod8(2)', inStr: 'P10(SER)=GND', outStr: 'P9 ➔ U2.P10', keys: ['KEY 0·CAM1', 'KEY 1·CAM2', 'KEY 2·CAM3', 'KEY 3·CAM4', 'KEY 4·CAM5', 'KEY 5·CAM6', 'KEY 6·CAM7', 'KEY 7·CAM8'] },
+      { id: 'U2', zone: 'PVW Pod8(4)+Pod9(4)', inStr: 'P10 ◀ U1.P9', outStr: 'P9 ➔ U3.P10', keys: ['KEY 8·PC1', 'KEY 9·PC2', 'KEY 10·MV1', 'KEY 11·MV2', 'KEY 12·VTR1', 'KEY 13·VTR2', 'KEY 14·PPT', 'KEY 15·GFX1'] },
+      { id: 'U3', zone: '跨 PVW9/PGM4', inStr: 'P10 ◀ U2.P9', outStr: 'P9 ➔ U4.P10', keys: ['KEY 16·AUX1', 'KEY 17·AUX2', 'KEY 18·CAM1', 'KEY 19·CAM2', 'KEY 20·CAM3', 'KEY 21·CAM4', 'KEY 22·CAM5', 'KEY 23·CAM6'] },
+      { id: 'U4', zone: 'PGM Pod5+Pod6(2)', inStr: 'P10 ◀ U3.P9', outStr: 'P9 ➔ U5.P10', keys: ['KEY 24·CAM7', 'KEY 25·CAM8', 'KEY 26·PC1', 'KEY 27·PC2', 'KEY 28·MV1', 'KEY 29·MV2', 'KEY 30·VTR1', 'KEY 31·VTR2'] },
+      { id: 'U5', zone: '跨 PGM6/DSK1', inStr: 'P10 ◀ U4.P9', outStr: 'P9 ➔ U6.P10', keys: ['KEY 32·PPT', 'KEY 33·GFX1', 'KEY 34·AUX1', 'KEY 35·AUX2', 'KEY 36·DSK1', 'KEY 37·DSK2', 'KEY 38·PIP1', 'KEY 39·PIP2'] },
+      { id: 'U6', zone: 'DSK Pod1(2)+Pod2', inStr: 'P10 ◀ U5.P9', outStr: 'P9 ➔ U7.P10', keys: ['KEY 40·LOGO', 'KEY 41·TITLE', 'KEY 42·STILL1', 'KEY 43·STILL2', 'KEY 44·KEY1', 'KEY 45·KEY2', 'KEY 46·REC', 'KEY 47·LIVE'] },
+      { id: 'U7', zone: 'USER Pod3+Pod10(2)', inStr: 'P10 ◀ U6.P9', outStr: 'P9 ➔ U8.P10', keys: ['KEY 48·F1宏1', 'KEY 49·F2宏2', 'KEY 50·F3音1', 'KEY 51·F4音2', 'KEY 52·F5字幕', 'KEY 53·F6計時', 'KEY 54·F7抓拍', 'KEY 55·F8靜音'] },
+      { id: 'U8', zone: 'USER10(4)+TRN11(4)', inStr: 'P10 ◀ U7.P9', outStr: 'P9 ➔ U9.P10', keys: ['KEY 56·F9備1', 'KEY 57·F10備2', 'KEY 58·AUX3', 'KEY 59·MUTE', 'KEY 60·MIX', 'KEY 61·WIPE', 'KEY 62·DIP', 'KEY 63·STING'] },
+      { id: 'U9', zone: 'TRN11(2)+TRN12', inStr: 'P10 ◀ U8.P9', outStr: 'P9 ➔ U10.P10', keys: ['KEY 64·DVE', 'KEY 65·PREV', 'KEY 66·BKGD', 'KEY 67·KEY3', 'KEY 68·DSK3', 'KEY 69·FTB', 'KEY 70·LOCK', 'KEY 71·NORM'] },
+      { id: 'U10', zone: 'RPLY13+CUT/AUTO', inStr: 'P10 ◀ U9.P9', outStr: 'P9 ➔ U11.P10', keys: ['KEY 72·IN', 'KEY 73·OUT', 'KEY 74·MARK', 'KEY 75·RPLY', 'KEY 76·PG-', 'KEY 77·PG+', 'KEY 78·CUT', 'KEY 79·AUTO'] },
+      { id: 'U11', zone: 'ENC1–8 壓合S2', inStr: 'P10 ◀ U10.P9', outStr: 'P9 ➔ U12.P10', keys: ['KEY 80·ENC1壓', 'KEY 81·ENC2壓', 'KEY 82·ENC3壓', 'KEY 83·ENC4壓', 'KEY 84·ENC5壓', 'KEY 85·ENC6壓', 'KEY 86·ENC7壓', 'KEY 87·ENC8壓'] },
+      { id: 'U12', zone: 'ENC9–10壓+E5–7 AB', inStr: 'P10 ◀ U11.P9', outStr: 'P9 ➔ U13.P10', keys: ['KEY 88·ENC9壓', 'KEY 89·ENC10壓', 'C: E5監聽_A', 'D: E5監聽_B', 'E: E6 PIP-X_A', 'F: E6 PIP-X_B', 'G: E7 PIP-Y_A', 'H: E7 PIP-Y_B'] },
+      { id: 'U13', zone: 'E8–10 AB + 2空', inStr: 'P10 ◀ U12.P9', outStr: 'P9 ➔ GPIO 42', keys: ['A: E8 PIP縮_A', 'B: E8 PIP縮_B', 'C: E9 DSK透_A', 'D: E9 DSK透_B', 'E: E10轉秒_A', 'F: E10轉秒_B', 'G: 預留開關 P5', 'H: 預留開關 P6'] }
+    ];
+
+    // ==================== 4. LED SNAKE ZONES & CHECKLIST DATA ====================
+    const ledZones = [
+      { idx: '①', name: 'PVW 預監 3×(2×3)', range: 'LED #0 ➔ LED #17', color: 'border-emerald-500/60 text-emerald-500', note: 'G48+330Ω進#0(首補電)；Pod7(#0–5)/Pod8(#6–11)/Pod9(#12–17) 配 LCD#7–9' },
+      { idx: '②', name: 'PGM 主出 3×(2×3)', range: 'LED #18 ➔ LED #35', color: 'border-red-500/60 text-red-500', note: 'Pod4(#18–23)/Pod5(#24–29)/Pod6(#30–35) 配 LCD#4–6；#35 末顆接點②補電' },
+      { idx: '③', name: 'DSK/USER1 3×(2×3)', range: 'LED #36 ➔ LED #53', color: 'border-amber-500/60 text-amber-500', note: 'Pod1 DSK1(#36–41)/Pod2 DSK2(#42–47)/Pod3 USER1(#48–53) 配 LCD#1–3' },
+      { idx: '④', name: 'USER2 模組 (2×3)', range: 'LED #54 ➔ LED #59', color: 'border-purple-500/60 text-purple-500', note: '#53 DOUT 進右側 Pod10 (F7–F10/AUX3/MUTE)，獨立配 LCD #10 (GPB1)' },
+      { idx: '⑤', name: 'TRANS 1+2 雙模組', range: 'LED #60 ➔ LED #71', color: 'border-blue-500/60 text-blue-500', note: 'Pod11 MIX–PREV(#60–65)配 LCD#11；Pod12 BKGD–NORM(#66–71)配 LCD#12' },
+      { idx: '⑥', name: 'REPLAY + T-Bar 2鍵', range: 'LED #72 ➔ LED #79', color: 'border-cyan-500/60 text-cyan-500', note: 'Pod13(#72–77)配 LCD#13；#78 CUT / #79 AUTO(#79尾端點③補電)' }
+    ];
+
+    const checklistSteps = [
+      { stage: '階段 1 · 電源與星形地', text: '焊好外部 5V/5A–6A 電源座 + 470μF 電容 + 5V→3.3V/2A 降壓模組 (供 15×彩屏 ~330mA) + 星形 GND' },
+      { stage: '階段 1 · 短路檢測', text: '斷電萬用表蜂鳴檔測 5V-GND 與兩組 3.3V-GND，確認完全無短路 (> 10kΩ)' },
+      { stage: '階段 2 · 禁區保護', text: '確認 ESP32 GPIO 35/36/37 (PSRAM) 與 0/3/45/46 (Strapping) 全部懸空未接' },
+      { stage: '階段 2 · W5500 & 15×LCD', text: 'W5500 與 15× ST7789P 共享 SPI2 (G11/12)；LCD DC=G47；MCP GPA0–7=CS1–8, GPB0–6=CS9–15, GPB7=RES' },
+      { stage: '階段 3 · 13×74HC165 級聯', text: '確認 U1–U13 Pin 15 接地、U1 Pin 10 接地、U13 Pin 9 進 GPIO 42 (涵蓋 K0–79 + K80–89 + E5–E10 AB)' },
+      { stage: '階段 3 · 排阻與電容', text: '每片 74HC165 已焊 10kΩ 上拉排阻 (A103J) 與 100nF (3.3V-GND) 退耦電容 (含 MCP 與 15×LCD)' },
+      { stage: '階段 4 · 80×SK6812 燈鏈', text: 'GPIO 48 已串 330Ω 電阻再進 LED #0 DIN (#0–#79)，缺角腳接 5V，對角接 GND' },
+      { stage: '階段 4 · 三點補電', text: '5V 與 GND 粗線已同時補接到 LED #0 (首)、#35 (中段 PGM 末)、#79 (尾端 AUTO)' },
+      { stage: '階段 5 · Jog 電壓確認', text: 'Jog 手輪 (KEY 90) A/B 相上拉電阻 (4.7kΩ) 確定接 3.3V（量測開路電壓 <= 3.3V）' },
+      { stage: '階段 5 · T-Bar 與 2kHz 掃描', text: 'T-Bar 接 GPIO 1 並聯 100nF；韌體啟用 2kHz (500μs) 定時掃描 U11–U13 確保 E5–E10 不丟步' }
+    ];
+
+    const state = {
+      activeNet: 'all',
+      hoverWire: null,
+      checked: new Set(),
+      widthPct: '100%'
+    };
+
+    // ==================== 5. RENDER FUNCTIONS ====================
+    function renderFilters() {
+      const wrap = document.getElementById('net-filters');
+      wrap.innerHTML = '';
+      netFilters.forEach(nf => {
+        const active = state.activeNet === nf.id;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `text-xs px-2 py-1 rounded-lg border cursor-pointer transition-all ${
+          active
+            ? 'bg-[var(--primary)] text-[var(--primary-foreground)] border-transparent font-semibold shadow-sm'
+            : 'bg-[var(--background)] border-[var(--border)] text-[var(--foreground)] hover:border-[var(--primary)]'
+        }`;
+        btn.textContent = nf.label;
+        btn.onclick = () => {
+          state.activeNet = nf.id;
+          document.getElementById('active-net-banner').textContent = nf.info;
+          renderFilters();
+          applyNetHighlight();
+        };
+        wrap.appendChild(btn);
+      });
+    }
+
+    function renderZoomControls() {
+      document.querySelectorAll('.zoom-btn').forEach(btn => {
+        const active = btn.dataset.width === state.widthPct;
+        btn.className = `zoom-btn text-xs px-2 py-0.5 rounded border cursor-pointer transition-all ${
+          active
+            ? 'bg-[var(--primary)] text-[var(--primary-foreground)] border-transparent font-semibold'
+            : 'bg-[var(--background)] border-[var(--border)] text-[var(--foreground)] hover:border-[var(--primary)]'
+        }`;
+        btn.onclick = () => {
+          state.widthPct = btn.dataset.width;
+          document.getElementById('blueprint-canvas').style.width = state.widthPct;
+          renderZoomControls();
+          requestAnimationFrame(() => drawSchematicWires());
+        };
+      });
+    }
+
+    function renderMcuPins() {
+      const j1Wrap = document.getElementById('mcu-j1');
+      const j3Wrap = document.getElementById('mcu-j3');
+      j1Wrap.innerHTML = '';
+      j3Wrap.innerHTML = '';
+
+      j1Pins.forEach((p, idx) => {
+        const row = document.createElement('div');
+        row.id = `mcu-j1-${idx + 1}`;
+        row.dataset.net = p.net;
+        row.dataset.wire = p.wire || '';
+        row.className = `mcu-pin pin-chip px-1.5 rounded border flex items-center justify-between gap-1 text-xs cursor-pointer transition-all ${p.bg}`;
+        row.title = `${p.pin} | ${p.gpio} | ${p.label}`;
+        row.innerHTML = `
+          <span class="font-mono font-bold ${p.color} shrink-0">${p.gpio}</span>
+          <span class="truncate text-[var(--muted-foreground)]">${p.label}</span>
+          <span class="font-mono text-[var(--muted-foreground)] shrink-0">${p.pin.replace('J1-', '')}</span>
+        `;
+        row.onmouseenter = () => highlightPinHover(p);
+        row.onmouseleave = () => clearPinHover();
+        row.onclick = () => {
+          state.activeNet = p.net;
+          document.getElementById('active-net-banner').textContent = `📌 ${p.pin} (${p.gpio}) ➔ ${p.label}`;
+          renderFilters();
+          applyNetHighlight();
+        };
+        j1Wrap.appendChild(row);
+      });
+
+      j3Pins.forEach((p, idx) => {
+        const row = document.createElement('div');
+        row.id = `mcu-j3-${idx + 1}`;
+        row.dataset.net = p.net;
+        row.dataset.wire = p.wire || '';
+        row.className = `mcu-pin pin-chip px-1.5 rounded border flex items-center justify-between gap-1 text-xs cursor-pointer transition-all ${p.bg}`;
+        row.title = `${p.pin} | ${p.gpio} | ${p.label}`;
+        row.innerHTML = `
+          <span class="font-mono text-[var(--muted-foreground)] shrink-0">${p.pin.replace('J3-', '')}</span>
+          <span class="truncate text-[var(--muted-foreground)]">${p.label}</span>
+          <span class="font-mono font-bold ${p.color} shrink-0">${p.gpio}</span>
+        `;
+        row.onmouseenter = () => highlightPinHover(p);
+        row.onmouseleave = () => clearPinHover();
+        row.onclick = () => {
+          state.activeNet = p.net;
+          document.getElementById('active-net-banner').textContent = `📌 ${p.pin} (${p.gpio}) ➔ ${p.label}`;
+          renderFilters();
+          applyNetHighlight();
+        };
+        j3Wrap.appendChild(row);
+      });
+    }
+
+    function render74HC165Chain() {
+      const grid = document.getElementById('hc165-chain-grid');
+      grid.innerHTML = '';
+      hc165Chips.forEach(chip => {
+        const card = document.createElement('div');
+        card.className = 'bg-[var(--background)] border border-emerald-500/40 rounded-lg p-2 flex flex-col justify-between gap-1 text-xs';
+        const isLast = chip.id === 'U13';
+        const isFirst = chip.id === 'U1';
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-[var(--border)]">
+              <span class="font-mono font-bold text-emerald-500">${chip.id}</span>
+              <span class="font-semibold truncate">${chip.zone}</span>
+            </div>
+            <div class="font-mono ${isFirst ? 'text-[var(--muted-foreground)]' : 'text-teal-500'} truncate">${chip.inStr}</div>
+            <div class="font-mono font-semibold ${isLast ? 'text-amber-500' : 'text-emerald-500'} truncate mb-1">${chip.outStr}</div>
+          </div>
+          <div class="space-y-0.5 border-t border-[var(--border)] pt-1 font-mono">
+            ${chip.keys.map((k, idx) => {
+              const pinNum = [11, 12, 13, 14, 3, 4, 5, 6][idx];
+              const letter = 'ABCDEFGH'[idx];
+              return `<div class="flex items-center justify-between gap-1"><span class="text-[var(--muted-foreground)]">${letter}(P${pinNum})</span><span class="truncate">${k}</span></div>`;
+            }).join('')}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function renderLedZones() {
+      const grid = document.getElementById('led-zones-grid');
+      grid.innerHTML = '';
+      ledZones.forEach(z => {
+        const card = document.createElement('div');
+        card.className = `bg-[var(--background)] border ${z.color.split(' ')[0]} rounded-lg p-2 text-xs flex flex-col gap-0.5`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-1">
+            <span class="font-bold ${z.color.split(' ')[1]}">${z.idx} ${z.name}</span>
+            <span class="font-mono font-semibold">${z.range}</span>
+          </div>
+          <div class="text-[var(--muted-foreground)] leading-snug">${z.note}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function renderChecklist() {
+      const list = document.getElementById('checklist-items');
+      list.innerHTML = '';
+      checklistSteps.forEach((item, idx) => {
+        const checked = state.checked.has(idx);
+        const row = document.createElement('label');
+        row.className = `flex items-start gap-2 p-1.5 rounded-lg border cursor-pointer transition-all ${
+          checked ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-[var(--background)] border-[var(--border)] hover:border-[var(--primary)]'
+        }`;
+        row.innerHTML = `
+          <input type="checkbox" data-idx="${idx}" ${checked ? 'checked' : ''} class="mt-0.5 accent-emerald-500 cursor-pointer shrink-0" />
+          <div class="leading-snug ${checked ? 'line-through text-[var(--muted-foreground)]' : ''}">
+            <span class="font-mono font-semibold text-[var(--primary)] mr-1">[${item.stage}]</span>${item.text}
+          </div>
+        `;
+        row.querySelector('input').onchange = (e) => {
+          if (e.target.checked) state.checked.add(idx);
+          else state.checked.delete(idx);
+          renderChecklist();
+        };
+        list.appendChild(row);
+      });
+      document.getElementById('checklist-progress').textContent = `${state.checked.size} / ${checklistSteps.length} 完成`;
+    }
+
+    document.getElementById('reset-checklist').onclick = () => {
+      state.checked.clear();
+      renderChecklist();
+    };
+
+    // ==================== 6. DYNAMIC ORTHOGONAL SVG WIRE DRAWING ====================
+    function drawSchematicWires() {
+      const stage = document.getElementById('schematic-stage');
+      const svg = document.getElementById('svg-wires');
+      const mcuBox = document.getElementById('mcu-package');
+      if (!stage || !svg || !mcuBox || window.innerWidth < 1024) {
+        if (svg) svg.innerHTML = '';
+        return;
+      }
+
+      const stageRect = stage.getBoundingClientRect();
+      const mcuRect = mcuBox.getBoundingClientRect();
+      svg.setAttribute('viewBox', `0 0 ${stageRect.width} ${stageRect.height}`);
+      svg.innerHTML = '';
+
+      wiresSpec.forEach(w => {
+        const portEl = document.getElementById(w.portId);
+        const pinEl = document.getElementById(w.mcuPinId);
+        if (!portEl || !pinEl) return;
+
+        const pRect = portEl.getBoundingClientRect();
+        const mRect = pinEl.getBoundingClientRect();
+        const stroke = wireColors[w.net] || '#64748b';
+        const isActive = (state.activeNet === 'all' || state.activeNet === w.net) && (!state.hoverWire || state.hoverWire === w.id);
+        const opacity = isActive ? '0.92' : '0.12';
+        const width = (state.hoverWire === w.id || (state.activeNet !== 'all' && state.activeNet === w.net)) ? '2.6' : '1.8';
+
+        let x1, y1, x2, y2, d;
+        y1 = pRect.top - stageRect.top + pRect.height / 2;
+        y2 = mRect.top - stageRect.top + mRect.height / 2;
+
+        if (w.side === 'L') {
+          x1 = pRect.right - stageRect.left + 4;
+          x2 = mRect.left - stageRect.left - 2;
+          const gap = Math.max(16, x2 - x1);
+          const trunkX = x1 + 8 + ((w.lane % 10) * Math.max(2.5, (gap - 16) / 10));
+          d = `M ${x1} ${y1} H ${trunkX} V ${y2} H ${x2}`;
+        } else if (w.side === 'R') {
+          x1 = pRect.left - stageRect.left - 4;
+          x2 = mRect.right - stageRect.left + 2;
+          const gap = Math.max(16, x1 - x2);
+          const trunkX = x2 + 8 + ((w.lane % 8) * Math.max(3, (gap - 16) / 8));
+          d = `M ${x2} ${y2} H ${trunkX} V ${y1} H ${x1}`;
+        } else {
+          // UNDER route (W5500 RST from Left side below MCU to J3-18)
+          x1 = pRect.right - stageRect.left + 4;
+          x2 = mRect.right - stageRect.left + 2;
+          const leftBusX = mcuRect.left - stageRect.left - 10;
+          const underY = mcuRect.bottom - stageRect.top + 10;
+          const rightBusX = mcuRect.right - stageRect.left + 12;
+          d = `M ${x1} ${y1} H ${leftBusX} V ${underY} H ${rightBusX} V ${y2} H ${x2}`;
+        }
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('stroke', stroke);
+        path.setAttribute('stroke-width', width);
+        path.setAttribute('stroke-opacity', opacity);
+        path.setAttribute('class', 'wire-path');
+        svg.appendChild(path);
+
+        // Endpoint solder dots
+        [[x1, y1], [x2, y2]].forEach(([cx, cy]) => {
+          const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          c.setAttribute('cx', cx);
+          c.setAttribute('cy', cy);
+          c.setAttribute('r', isActive ? '3' : '2');
+          c.setAttribute('fill', stroke);
+          c.setAttribute('fill-opacity', opacity);
+          svg.appendChild(c);
+        });
+      });
+    }
+
+    function applyNetHighlight() {
+      const an = state.activeNet;
+      document.querySelectorAll('.mod-card').forEach(card => {
+        const nets = (card.dataset.nets || '').split(' ');
+        const match = an === 'all' || nets.includes(an);
+        card.classList.toggle('net-dim', !match);
+        card.classList.toggle('net-focus', an !== 'all' && match);
+      });
+      document.querySelectorAll('.mcu-pin').forEach(pin => {
+        const match = an === 'all' || pin.dataset.net === an;
+        pin.classList.toggle('net-dim', !match);
+        pin.classList.toggle('ring-2', an !== 'all' && match);
+        pin.classList.toggle('ring-amber-400', an !== 'all' && match);
+      });
+      drawSchematicWires();
+    }
+
+    function highlightPinHover(p) {
+      state.hoverWire = p.wire;
+      document.getElementById('active-net-banner').textContent = `📌 ${p.pin} (${p.gpio}) ➔ ${p.label}`;
+      drawSchematicWires();
+    }
+
+    function clearPinHover() {
+      state.hoverWire = null;
+      const cur = netFilters.find(n => n.id === state.activeNet);
+      if (cur) document.getElementById('active-net-banner').textContent = cur.info;
+      drawSchematicWires();
+    }
+
+    // ==================== 7. INIT & RESIZE SYNC ====================
+    function init() {
+      renderFilters();
+      renderZoomControls();
+      renderMcuPins();
+      render74HC165Chain();
+      renderLedZones();
+      renderChecklist();
+      applyNetHighlight();
+      requestAnimationFrame(() => drawSchematicWires());
+    }
+
+    window.addEventListener('resize', () => drawSchematicWires());
+    if (window.ResizeObserver) {
+      new ResizeObserver(() => drawSchematicWires()).observe(document.getElementById('schematic-stage'));
+    }
+
+    init();
+  </script>
+</body>
+</html>

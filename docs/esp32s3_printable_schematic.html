@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32-S3 導播切換台 (80鍵 + 10旋鈕 + 15×2.25" 彩屏) · A4 橫式列印版工程接線圖與 BOM 手冊</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    /* Screen preview sheet container (A4 Landscape proportion: 297 x 210mm) */
+    .print-sheet {
+      background-color: #ffffff;
+      color: #0f172a;
+      border: 1.5px solid #334155;
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin: 0 auto 18px auto;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.14);
+    }
+
+    body.preview-a4 .print-sheet {
+      width: 1120px;
+      min-height: 760px;
+    }
+
+    body.preview-full .print-sheet {
+      width: 100%;
+    }
+
+    /* Engineering tables & boxes inside white paper sheet */
+    .eng-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .eng-table th,
+    .eng-table td {
+      border: 1px solid #94a3b8;
+      padding: 2px 6px;
+      font-size: 12px;
+      line-height: 1.25;
+      vertical-align: middle;
+    }
+    .eng-table th {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    .chip-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .chip-table th,
+    .chip-table td {
+      border: 1px solid #cbd5e1;
+      padding: 0 4px;
+      font-size: 12px;
+      line-height: 1.15;
+    }
+
+    /* High-contrast B&W laser toner-saving mode */
+    body.bw-mode .print-sheet {
+      filter: grayscale(100%) contrast(120%);
+    }
+    body.bw-mode .sheet-accent {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+      border-color: #0f172a !important;
+    }
+    body.bw-mode .ban-row {
+      background-color: #e2e8f0 !important;
+      border: 1.5px dashed #0f172a !important;
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 7mm;
+    }
+
+    @media print {
+      html, body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .sheets-wrap {
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+      }
+      .print-sheet {
+        width: 100% !important;
+        min-height: auto !important;
+        margin: 0 !important;
+        padding: 8px 10px !important;
+        border: 1.5px solid #0f172a !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        page-break-after: always;
+        break-after: page;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .print-sheet:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+    }
+  </style>
+</head>
+<body class="preview-a4 bg-[var(--background)] text-[var(--foreground)] antialiased m-0 p-3 w-full min-h-screen">
+
+  <!-- ==================== NON-PRINTABLE CONTROL BAR ==================== -->
+  <header class="no-print w-full bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 mb-4 shadow-sm">
+    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-2 pb-2 border-b border-[var(--border)]">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-sm font-bold">🖨️ ESP32-S3 導播切換台 · A4 橫式列印版工程圖紙與 BOM 手冊 (共 4 頁)</span>
+        <span class="text-xs px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--background)] text-[var(--muted-foreground)] font-mono">
+          white-paper print · 12px+ clear font
+        </span>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button type="button" id="btn-print" class="text-xs px-3 py-1.5 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold cursor-pointer shadow-sm">
+          🖨️ 一鍵列印 / 另存 PDF (Ctrl+P)
+        </button>
+        <button type="button" id="btn-bw" class="text-xs px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] cursor-pointer hover:border-[var(--primary)]">
+          ⬛ 切換黑白雷射高對比模式
+        </button>
+        <button type="button" id="btn-layout" class="text-xs px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] cursor-pointer hover:border-[var(--primary)]">
+          📐 切換為全寬連續捲動
+        </button>
+      </div>
+    </div>
+    <div class="flex items-center justify-between gap-2 pt-2 flex-wrap text-xs">
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-[var(--muted-foreground)]">快速跳頁：</span>
+        <a href="#sheet-1" class="px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--background)] hover:border-[var(--primary)]">圖紙 01：44-Pin 主控總圖</a>
+        <a href="#sheet-2" class="px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--background)] hover:border-[var(--primary)]">圖紙 02：13×74HC165 逐針表</a>
+        <a href="#sheet-3" class="px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--background)] hover:border-[var(--primary)]">圖紙 03：80鍵 + 10旋鈕 + 15彩屏</a>
+        <a href="#sheet-4" class="px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--background)] hover:border-[var(--primary)]">圖紙 04：BOM 採購與萬用表檢核表</a>
+      </div>
+      <div class="text-[var(--muted-foreground)] font-mono">
+        建議列印設定：紙張 <strong>A4</strong> · 方向 <strong>橫向 (Landscape)</strong> · 開啟 <strong>背景圖形</strong>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== PRINTABLE 4-SHEET ENGINEERING PACKET ==================== -->
+  <div class="sheets-wrap w-full overflow-x-auto pb-6">
+
+    <!-- ************************************************************************
+         SHEET 01 OF 04: ESP32-S3 44-PIN MASTER SCHEMATIC & WIRING TABLE
+    ************************************************************************* -->
+    <section id="sheet-1" class="print-sheet flex flex-col justify-between gap-2">
+      <!-- Engineering Title Block -->
+      <div class="border-b-2 border-slate-800 pb-1.5 flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <div class="text-sm font-bold text-slate-900">圖紙 01：ESP32-S3-DevKitC-1 (N16R8) 44-Pin 一對一接線總圖</div>
+          <div class="text-xs text-slate-700 font-mono">PROJECT: ESP32-S3 COMPANION 80-KEY + 10×EC11 + 15×2.25" ST7789P · 左側 SPI+I2C+E1–3 / 右側 T-Bar+E4+按鍵鏈</div>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-mono">
+          <span class="sheet-accent px-2 py-0.5 rounded border border-emerald-700 bg-emerald-50 text-emerald-900 font-bold">總 GPIO: 36 支</span>
+          <span class="sheet-accent px-2 py-0.5 rounded border border-blue-700 bg-blue-50 text-blue-900 font-bold">已用 28 · 空腳 1 (G2) · 禁區 7</span>
+          <span class="px-2 py-0.5 border border-slate-800 bg-slate-100 font-bold text-slate-900">SHEET 01 / 04</span>
+        </div>
+      </div>
+
+      <!-- Complete 22-Row Side-by-Side Pinout Schematic Table -->
+      <table class="eng-table font-mono">
+        <thead>
+          <tr>
+            <th class="text-left w-[27%]">左側 J1 外設接線與保護元件規格</th>
+            <th class="text-center w-[7%]">類別</th>
+            <th class="text-center w-[7%]">GPIO</th>
+            <th class="text-center w-[5%]">J1</th>
+            <th class="text-center w-[8%] bg-slate-800 text-white" style="background-color:#1e293b;color:#ffffff;">MCU 本體</th>
+            <th class="text-center w-[5%]">J3</th>
+            <th class="text-center w-[7%]">GPIO</th>
+            <th class="text-center w-[7%]">類別</th>
+            <th class="text-left w-[27%]">右側 J3 外設接線與保護元件規格</th>
+          </tr>
+        </thead>
+        <tbody id="sheet1-pin-rows"></tbody>
+      </table>
+
+      <!-- Bottom Critical Engineering Notes -->
+      <div class="grid grid-cols-4 gap-2 text-xs">
+        <div class="sheet-accent border border-rose-700 bg-rose-50 rounded p-1.5">
+          <div class="font-bold text-rose-900">⛔ 7 支絕對禁接腳 (貼膠帶遮蔽)</div>
+          <div class="text-slate-800 leading-snug">• <strong>G35/36/37</strong> (J3-11~13)：內部 Octal PSRAM<br>• <strong>G0/3/45/46</strong> (J3-14~15, J1-13~14)：Strapping 腳</div>
+        </div>
+        <div class="sheet-accent border border-blue-700 bg-blue-50 rounded p-1.5">
+          <div class="font-bold text-blue-900">🌐 SPI2 共享 (W5500 + 15×彩屏)</div>
+          <div class="text-slate-800 leading-snug">W5500 SCS=G10, MOSI=G11, SCLK=G12 並聯 15× ST7789P；CS1–15 接 <strong>MCP GPA0–7/GPB0–6</strong>，RES=GPB7。</div>
+        </div>
+        <div class="sheet-accent border border-purple-700 bg-purple-50 rounded p-1.5">
+          <div class="font-bold text-purple-900">🎛️ Jog 上拉 &amp; 彩屏供電鐵則</div>
+          <div class="text-slate-800 leading-snug">手輪本體 5V，A/B 上拉 <strong>4.7kΩ 必接 3.3V</strong>；15×彩屏 (~330mA) 另用獨立 <strong>5V→3.3V/2A</strong> 降壓。</div>
+        </div>
+        <div class="sheet-accent border border-emerald-700 bg-emerald-50 rounded p-1.5">
+          <div class="font-bold text-emerald-900">✅ 唯一空腳 G2 &amp; 🖥️ 彩屏 G47</div>
+          <div class="text-slate-800 leading-snug">• <strong>GPIO 2 (J3-5)</strong>：唯一空腳 (ADC1/MCP INTA)<br>• <strong>GPIO 47 (J3-17)</strong>：15× ST7789P 共用 DC 腳</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ************************************************************************
+         SHEET 02 OF 04: 13x SN74HC165D DAISY CHAIN & 104-INPUT PIN MAPPING
+    ************************************************************************* -->
+    <section id="sheet-2" class="print-sheet flex flex-col justify-between gap-2">
+      <!-- Title Block -->
+      <div class="border-b-2 border-slate-800 pb-1.5 flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <div class="text-sm font-bold text-slate-900">圖紙 02：13 片 SN74HC165D 級聯接線圖 (U1 ➔ U13 共 104 路輸入逐針施工表)</div>
+          <div class="text-xs text-slate-700 font-mono">CASCADE: U1.P10(SER)=GND ➔ U1.P9(QH)→U2.P10 ➔ ... ➔ U13.P9(QH)→GPIO 42 · U11–13 2kHz(500μs)掃描</div>
+        </div>
+        <span class="px-2 py-0.5 border border-slate-800 bg-slate-100 font-mono text-xs font-bold text-slate-900">SHEET 02 / 04</span>
+      </div>
+
+      <!-- Common Pin Wiring Legend Strip -->
+      <div class="grid grid-cols-5 gap-2 text-xs font-mono">
+        <div class="sheet-accent border border-emerald-700 bg-emerald-50 rounded px-2 py-1">
+          <strong>Pin 1 (SH/LD)：</strong>U1–13 並聯 ➔ <strong>GPIO 41</strong>
+        </div>
+        <div class="sheet-accent border border-emerald-700 bg-emerald-50 rounded px-2 py-1">
+          <strong>Pin 2 (CLK)：</strong>U1–13 並聯 ➔ <strong>GPIO 40</strong>
+        </div>
+        <div class="border border-slate-400 bg-slate-50 rounded px-2 py-1">
+          <strong>Pin 15 (/CE)：</strong>全部 ➔ <strong>GND</strong> · <strong>Pin 8：</strong>GND
+        </div>
+        <div class="border border-slate-400 bg-slate-50 rounded px-2 py-1">
+          <strong>Pin 16 (VCC)：</strong><strong>3.3V</strong> + 每片並聯 <strong>100nF</strong> 到 GND
+        </div>
+        <div class="border border-slate-400 bg-slate-50 rounded px-2 py-1">
+          <strong>A103J 排阻：</strong>Pin 1 圓點接 <strong>3.3V</strong>，8 腳上拉 A–H
+        </div>
+      </div>
+
+      <!-- 7x2 Chip Cascade Grid (U1..U13 + 1 Scan Info Card) -->
+      <div id="sheet2-chips-grid" class="grid grid-cols-7 gap-1.5"></div>
+
+      <!-- Bottom Cascade Wiring Order Bar -->
+      <div class="border border-slate-700 bg-slate-50 rounded p-2 flex items-center justify-between gap-2 flex-wrap text-xs font-mono">
+        <span><strong>串聯順序 (勿接反)：</strong>GND ➔ <strong>U1</strong>.P10 ➔ ... ➔ <strong>U10</strong>(K72–79) ➔ <strong>U11</strong>(E1–8壓) ➔ <strong>U12</strong>(E9–10壓/E5–7 AB) ➔ <strong>U13</strong>.P9 ➔ <strong>GPIO 42</strong></span>
+        <span class="text-slate-700">Pin 7 (/QH) 全懸空 · <strong>U13 G–H (P5–6)</strong> 為 2 路面板預留開關 · <strong>U11–U13 需 2kHz Timer 掃描</strong></span>
+      </div>
+    </section>
+
+    <!-- ************************************************************************
+         SHEET 03 OF 04: 80-KEY + 10xEC11 + 15x 2.25" ST7789P MAP & 80x SK6812 3-POINT POWER
+    ************************************************************************* -->
+    <section id="sheet-3" class="print-sheet flex flex-col justify-between gap-1">
+      <!-- Title Block -->
+      <div class="border-b-2 border-slate-800 pb-1 flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <div class="text-sm font-bold text-slate-900">圖紙 03：13 組「高2寬3 按鍵＋獨立 2.25" 彩屏模組」總圖 + 頂部雙旋鈕屏 (共 15 屏 / 80 鍵 / 10×EC11)</div>
+          <div class="text-xs text-slate-700 font-mono">MODULAR POD ARCHITECTURE: 每組 2×3 專屬 1 屏 (LCD#1–13) + 旋鈕區 (LCD#14–15) · 單片 MCP23017 (GPA0–7/GPB0–6=CS1–15, GPB7=RES)</div>
+        </div>
+        <span class="px-2 py-0.5 border border-slate-800 bg-slate-100 font-mono text-xs font-bold text-slate-900">SHEET 03 / 04</span>
+      </div>
+
+      <!-- Top Bar: MCP23017 Full 16/16 + Top 2 Encoder/Jog Pods (LCD #14 & #15) -->
+      <div class="grid grid-cols-12 gap-1.5 text-xs items-stretch">
+        <div class="col-span-3 border border-sky-700 bg-sky-50 rounded p-1 flex flex-col justify-between">
+          <div class="font-bold text-sky-900">🖥️ 15×2.25" 彩屏總線 (~330mA)</div>
+          <div class="font-mono text-slate-800 leading-tight">SPI2: G11/G12 · DC: G47 · 3.3V/2A<br/>MCP (0x20): GPA0–7=CS1–8<br/>GPB0–6=CS9–15 · <strong>GPB7=RES</strong></div>
+        </div>
+        <div class="col-span-9 grid grid-cols-2 gap-1.5" id="sheet3-top-pods"></div>
+      </div>
+
+      <!-- Main Printable 13x(2x3) Pods + T-Bar Direct Keys (9 cols Left : 6 cols Right = 59% : 41%) -->
+      <div class="grid gap-1.5 items-stretch" style="grid-template-columns: 59% minmax(0, 1fr);">
+        <!-- Left 59%: 3x3 Pods (9 pods = 54 keys, LCD #1–#9) -->
+        <div id="sheet3-left-pods" class="grid grid-cols-3 gap-1"></div>
+
+        <!-- Right 41%: 2x2 Pods (Pod 10–13, 24 keys, LCD #10–13) + T-Bar & K78 CUT / K79 AUTO + Jog -->
+        <div class="flex flex-col justify-between gap-1">
+          <div id="sheet3-right-pods" class="grid grid-cols-2 gap-1"></div>
+          <div id="sheet3-right-bottom" class="grid grid-cols-6 gap-1 items-stretch"></div>
+        </div>
+      </div>
+
+      <!-- Bottom SK6812 4-Pad Pinout & 3-Point 5V Injection Diagram -->
+      <div class="grid grid-cols-12 gap-2 text-xs">
+        <div class="col-span-4 border border-slate-700 rounded p-1 bg-slate-50">
+          <div class="font-bold text-slate-900 mb-0.5">💡 SK6812 MINI-E 4 焊盤定位 (透鏡正面)</div>
+          <div class="font-mono text-slate-800 leading-tight">
+            • <strong>Pin 1 (缺角)：VDD (+5V)</strong> · <strong>Pin 3：GND</strong><br>
+            • <strong>Pin 2：DOUT</strong> (進下顆) · <strong>Pin 4：DIN</strong> (G48+330Ω)
+          </div>
+        </div>
+        <div class="col-span-8 sheet-accent border border-rose-700 bg-rose-50 rounded p-1 flex flex-col justify-between">
+          <div class="font-bold text-rose-900 flex items-center justify-between">
+            <span>⚡ 80 顆 RGB 燈鏈「#0 / #35 / #79 三點 5V 補電」(4.8A 峰 · 20AWG)</span>
+            <span class="font-mono">GPIO 48 ➔ 330Ω ➔ LED #0..#79</span>
+          </div>
+          <div class="grid grid-cols-3 gap-1.5 font-mono text-slate-900 mt-0.5">
+            <div class="bg-white border border-slate-400 rounded px-1.5 py-0.5 leading-tight">
+              <strong>① 首端 (LED #0 CAM1)</strong><br/>5V/GND 直入 + <strong>470μF/10V</strong>
+            </div>
+            <div class="bg-white border border-slate-400 rounded px-1.5 py-0.5 leading-tight">
+              <strong>② 中段 (LED #35 AUX2)</strong><br/>PGM Pod6 末顆 5V/GND 補電
+            </div>
+            <div class="bg-white border border-slate-400 rounded px-1.5 py-0.5 leading-tight">
+              <strong>③ 尾端 (LED #79 AUTO)</strong><br/>T-Bar 末顆閉環 + <strong>3.3V/2A</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ************************************************************************
+         SHEET 04 OF 04: 20-ITEM BOM SHEET + 5-STAGE CHECKLIST & MULTIMETER LOG
+    ************************************************************************* -->
+    <section id="sheet-4" class="print-sheet flex flex-col justify-between gap-2">
+      <!-- Title Block -->
+      <div class="border-b-2 border-slate-800 pb-1.5 flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <div class="text-sm font-bold text-slate-900">圖紙 04：完整 22 項硬體 BOM 採購清點單 &amp; 五階段焊接與萬用表實測紀錄表</div>
+          <div class="text-xs text-slate-700 font-mono">WORKBENCH QA: 採購核對、施工勾選與「上電前必測阻值/電壓」紙本簽核單</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-reset-checks" class="no-print text-xs px-2 py-0.5 rounded border border-slate-400 bg-slate-100 hover:bg-slate-200 cursor-pointer">清除勾選</button>
+          <span class="px-2 py-0.5 border border-slate-800 bg-slate-100 font-mono text-xs font-bold text-slate-900">SHEET 04 / 04</span>
+        </div>
+      </div>
+
+      <!-- Two-Column Print Body: Left 7 cols BOM, Right 5 cols QA & Measurements -->
+      <div class="grid grid-cols-12 gap-2 items-start">
+        <!-- BOM Table -->
+        <div class="col-span-7">
+          <table class="eng-table">
+            <thead>
+              <tr>
+                <th class="w-[5%] text-center">✓</th>
+                <th class="w-[5%] text-center">#</th>
+                <th class="w-[21%] text-left">物料名稱</th>
+                <th class="w-[38%] text-left">推薦規格 / 採購型號</th>
+                <th class="w-[10%] text-center">實/購量</th>
+                <th class="w-[21%] text-left">關鍵避坑備註</th>
+              </tr>
+            </thead>
+            <tbody id="sheet4-bom-rows"></tbody>
+          </table>
+        </div>
+
+        <!-- Construction Checklist & Multimeter Test Log -->
+        <div class="col-span-5 flex flex-col gap-2">
+          <div>
+            <div class="text-xs font-bold bg-slate-800 text-white px-2 py-1 rounded-t" style="background-color:#1e293b;color:#ffffff;">
+              五階段施工檢核表 (請逐項實測後打勾)
+            </div>
+            <table class="eng-table">
+              <tbody id="sheet4-checklist-rows"></tbody>
+            </table>
+          </div>
+
+          <div class="sheet-accent border border-rose-700 bg-rose-50 rounded p-2 text-xs">
+            <div class="font-bold text-rose-900 mb-1">⚠️ 上電前 / 上電時萬用表實測紀錄欄 (手寫填寫)</div>
+            <table class="eng-table bg-white">
+              <thead>
+                <tr>
+                  <th class="text-left">量測項目</th>
+                  <th class="text-center">合格標準</th>
+                  <th class="text-center w-[28%]">實測數據</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>1. 斷電 5V 對 GND 阻值</td><td class="text-center font-mono">&gt; 10 kΩ (無短路)</td><td class="text-right font-mono">_______ kΩ</td></tr>
+                <tr><td>2. 斷電雙 3.3V 對 GND 阻值</td><td class="text-center font-mono">&gt; 10 kΩ (無短路)</td><td class="text-right font-mono">_______ kΩ</td></tr>
+                <tr><td>3. 上電後 5V 電源軌電壓</td><td class="text-center font-mono">4.90V – 5.15V</td><td class="text-right font-mono">_______ V</td></tr>
+                <tr><td>4. 獨立 3.3V/2A 降壓輸出 (彩屏)</td><td class="text-center font-mono">3.25V – 3.35V</td><td class="text-right font-mono">_______ V</td></tr>
+                <tr><td>5. Jog A/B 空載上拉電壓</td><td class="text-center font-mono font-bold">&le; 3.35V (禁 5V!)</td><td class="text-right font-mono">_______ V</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="border border-slate-500 rounded p-1.5 text-xs flex items-center justify-between font-mono text-slate-800 bg-slate-50">
+            <span>Companion Satellite Port: <strong>TCP 16622</strong></span>
+            <span>製作人 / 日期：____________</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // ==================== SHEET 1 DATA: 44-PIN MASTER TABLE ====================
+    const netBadge = {
+      pwr: { text: '電源/口', cls: 'bg-rose-100 text-rose-900 border-rose-400' },
+      enc: { text: '編碼器', cls: 'bg-purple-100 text-purple-900 border-purple-400' },
+      i2c: { text: 'I2C', cls: 'bg-teal-100 text-teal-900 border-teal-400' },
+      eth: { text: 'SPI2', cls: 'bg-blue-100 text-blue-900 border-blue-400' },
+      lcd: { text: '15×彩屏', cls: 'bg-sky-100 text-sky-900 border-sky-400 font-bold' },
+      adc: { text: 'ADC', cls: 'bg-amber-100 text-amber-900 border-amber-400' },
+      hc165: { text: '74HC165', cls: 'bg-emerald-100 text-emerald-900 border-emerald-400' },
+      led: { text: 'SK6812', cls: 'bg-cyan-100 text-cyan-900 border-cyan-400' },
+      spare: { text: '可用空腳', cls: 'bg-emerald-200 text-emerald-950 border-emerald-600 font-bold' },
+      ban: { text: '⛔禁區', cls: 'bg-rose-200 text-rose-950 border-rose-700 font-bold' }
+    };
+
+    const j1Rows = [
+      { pin: '1', gpio: '3V3', net: 'pwr', wire: '3.3V 主邏輯軌 ➔ U1–U13 / T-Bar / 排阻' },
+      { pin: '2', gpio: '3V3', net: 'pwr', wire: '另加 5V→3.3V/2A 降壓 ➔ 15×彩屏 VCC+BLK (~330mA)' },
+      { pin: '3', gpio: 'RST', net: 'pwr', wire: 'EN 系統復位鍵 (內建上拉，留空或外接按鍵)' },
+      { pin: '4', gpio: 'G4', net: 'enc', wire: 'Jog 手輪 A 相 (PCNT0) + 4.7kΩ上拉 3.3V' },
+      { pin: '5', gpio: 'G5', net: 'enc', wire: 'Jog 手輪 B 相 (KEY 90) + 4.7kΩ上拉 3.3V' },
+      { pin: '6', gpio: 'G6', net: 'enc', wire: 'EC11 #1 主音量 (KEY 80) A 相 · C腳 GND' },
+      { pin: '7', gpio: 'G7', net: 'enc', wire: 'EC11 #1 B 相 · S2 按壓接 U11.A (P11)' },
+      { pin: '8', gpio: 'G15', net: 'enc', wire: 'EC11 #2 麥1 (KEY 81) A 相 · S2接 U11.B' },
+      { pin: '9', gpio: 'G16', net: 'enc', wire: 'EC11 #2 B 相 (E5–E10 A/B 進 U12–U13)' },
+      { pin: '10', gpio: 'G17', net: 'enc', wire: 'EC11 #3 麥2 (KEY 82) A 相 · S2接 U11.C' },
+      { pin: '11', gpio: 'G18', net: 'enc', wire: 'EC11 #3 B 相 (並 10nF 防抖對地)' },
+      { pin: '12', gpio: 'G8', net: 'i2c', wire: 'I2C SDA ➔ MCP23017 (0x20: CS1–15/RES) + OLED' },
+      { pin: '13', gpio: 'G3', net: 'ban', wire: '⛔ Strapping 啟動腳 — 禁止外接' },
+      { pin: '14', gpio: 'G46', net: 'ban', wire: '⛔ Strapping 啟動腳 — 禁止外接' },
+      { pin: '15', gpio: 'G9', net: 'i2c', wire: 'I2C SCL ➔ MCP23017 (4.7kΩ上拉 · RESET 10kΩ上拉)' },
+      { pin: '16', gpio: 'G10', net: 'eth', wire: 'W5500 SPI2 專屬片選 SCS (LCD CS1–15 接 MCP)' },
+      { pin: '17', gpio: 'G11', net: 'eth', wire: 'SPI2 MOSI ➔ 並聯 W5500 + 15× ST7789P SDA (加 33Ω)' },
+      { pin: '18', gpio: 'G12', net: 'eth', wire: 'SPI2 SCLK ➔ 並聯 W5500 + 15× ST7789P SCL' },
+      { pin: '19', gpio: 'G13', net: 'eth', wire: 'W5500 SPI2 MISO FSPIQ (彩屏無 MISO)' },
+      { pin: '20', gpio: 'G14', net: 'eth', wire: 'W5500 拔線備援中斷 INTn (USR Pin1-6 / P6)' },
+      { pin: '21', gpio: '5V', net: 'pwr', wire: '外部 5V/5A–6A 總電源輸入 + 470μF + 3.3V降壓' },
+      { pin: '22', gpio: 'GND', net: 'pwr', wire: '左側星形單點總地線 Star GND' }
+    ];
+
+    const j3Rows = [
+      { pin: '1', gpio: 'GND', net: 'pwr', wire: '右側上角星形地線匯接點' },
+      { pin: '2', gpio: 'G43', net: 'pwr', wire: 'UART0 TX (板載 CH343/CP2102 燒錄除錯)' },
+      { pin: '3', gpio: 'G44', net: 'pwr', wire: 'UART0 RX (板載 CH343/CP2102 燒錄除錯)' },
+      { pin: '4', gpio: 'G1', net: 'adc', wire: 'T-Bar (B10K) 推桿 Wiper + 100nF 對地濾波' },
+      { pin: '5', gpio: 'G2', net: 'spare', wire: '✅ 唯一空腳：第 2 推桿 (ADC1) 或 MCP INTA' },
+      { pin: '6', gpio: 'G42', net: 'hc165', wire: '74HC165 DATA ◀ 末片 U13 Pin 9 (QH) 2kHz讀入' },
+      { pin: '7', gpio: 'G41', net: 'hc165', wire: '74HC165 SH/LD ──▶ 並聯 U1–U13 Pin 1' },
+      { pin: '8', gpio: 'G40', net: 'hc165', wire: '74HC165 CLK ──▶ 並聯 U1–U13 Pin 2' },
+      { pin: '9', gpio: 'G39', net: 'enc', wire: 'EC11 #4 VTR音源 (KEY 83) B 相 + 10kΩ上拉' },
+      { pin: '10', gpio: 'G38', net: 'enc', wire: 'EC11 #4 A 相 (S2 接 U11.D P14)' },
+      { pin: '11', gpio: 'G37', net: 'ban', wire: '⛔ 內部 Octal PSRAM (SPI) — 禁接必當機' },
+      { pin: '12', gpio: 'G36', net: 'ban', wire: '⛔ 內部 Octal PSRAM (SPI) — 禁接必當機' },
+      { pin: '13', gpio: 'G35', net: 'ban', wire: '⛔ 內部 Octal PSRAM (SPI) — 禁接必當機' },
+      { pin: '14', gpio: 'G0', net: 'ban', wire: '⛔ Strapping BOOT 腳 — 僅作燒錄鍵' },
+      { pin: '15', gpio: 'G45', net: 'ban', wire: '⛔ Strapping VDD_SPI — 禁止外接負載' },
+      { pin: '16', gpio: 'G48', net: 'led', wire: 'SK6812 燈鏈 ──▶ 串 330Ω ➔ LED #0..#79 DIN' },
+      { pin: '17', gpio: 'G47', net: 'lcd', wire: '🖥️ 15× 2.25" ST7789P 並聯共用 DC (CS接MCP)' },
+      { pin: '18', gpio: 'G21', net: 'eth', wire: 'W5500 RSTn 硬體復位 (彩屏 RES 接 MCP GPB7)' },
+      { pin: '19', gpio: 'G20', net: 'pwr', wire: '原生 USB OTG D+ (直連 Companion 網卡)' },
+      { pin: '20', gpio: 'G19', net: 'pwr', wire: '原生 USB OTG D- (直連 Companion 網卡)' },
+      { pin: '21', gpio: 'GND', net: 'pwr', wire: 'USB 端右下星形回流地線' },
+      { pin: '22', gpio: 'GND', net: 'pwr', wire: 'USB 端右下星形回流地線' }
+    ];
+
+    function renderSheet1() {
+      const tbody = document.getElementById('sheet1-pin-rows');
+      const mcuLabels = [
+        'Wi-Fi / BLE', '', 'PCB 天線區', '', '', 'ESP32-S3', 'N16R8', 'Dual-Core', '16MB Flash',
+        '8MB PSRAM', '', 'PCNT 0–3', 'Hardware', 'RMT LED', 'SPI2 (FSPI)', '', 'I2C 400kHz',
+        'ADC1 (12b)', '', 'Native USB', 'USB-C OTG', 'UART0'
+      ];
+      tbody.innerHTML = j1Rows.map((l, i) => {
+        const r = j3Rows[i];
+        const lb = netBadge[l.net];
+        const rb = netBadge[r.net];
+        const lBan = l.net === 'ban' ? 'ban-row bg-rose-50' : '';
+        const rBan = r.net === 'ban' ? 'ban-row bg-rose-50' : '';
+        return `
+          <tr>
+            <td class="${lBan} text-right">${l.wire}</td>
+            <td class="text-center"><span class="sheet-accent inline-block px-1 rounded border ${lb.cls}">${lb.text}</span></td>
+            <td class="text-center font-bold">${l.gpio}</td>
+            <td class="text-center bg-slate-100 font-bold">${l.pin}</td>
+            <td class="text-center bg-slate-50 font-semibold text-slate-700">${mcuLabels[i]}</td>
+            <td class="text-center bg-slate-100 font-bold">${r.pin}</td>
+            <td class="text-center font-bold">${r.gpio}</td>
+            <td class="text-center"><span class="sheet-accent inline-block px-1 rounded border ${rb.cls}">${rb.text}</span></td>
+            <td class="${rBan} text-left">${r.wire}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ==================== SHEET 2 DATA: U1..U13 CASCADE ====================
+    const hc165Chips = [
+      { id: 'U1', zone: 'PVW7+8(2)', inStr: 'P10=GND', outStr: 'P9→U2', keys: ['K0 CAM1', 'K1 CAM2', 'K2 CAM3', 'K3 CAM4', 'K4 CAM5', 'K5 CAM6', 'K6 CAM7', 'K7 CAM8'] },
+      { id: 'U2', zone: 'PVW8+9(4)', inStr: 'P10◀U1', outStr: 'P9→U3', keys: ['K8 PC1', 'K9 PC2', 'K10 MV1', 'K11 MV2', 'K12 VTR1', 'K13 VTR2', 'K14 PPT', 'K15 GFX1'] },
+      { id: 'U3', zone: 'PVW9/PGM4', inStr: 'P10◀U2', outStr: 'P9→U4', keys: ['K16 AUX1', 'K17 AUX2', 'K18 CAM1', 'K19 CAM2', 'K20 CAM3', 'K21 CAM4', 'K22 CAM5', 'K23 CAM6'] },
+      { id: 'U4', zone: 'PGM5+6(2)', inStr: 'P10◀U3', outStr: 'P9→U5', keys: ['K24 CAM7', 'K25 CAM8', 'K26 PC1', 'K27 PC2', 'K28 MV1', 'K29 MV2', 'K30 VTR1', 'K31 VTR2'] },
+      { id: 'U5', zone: 'PGM6/DSK1', inStr: 'P10◀U4', outStr: 'P9→U6', keys: ['K32 PPT', 'K33 GFX1', 'K34 AUX1', 'K35 AUX2', 'K36 DSK1', 'K37 DSK2', 'K38 PIP1', 'K39 PIP2'] },
+      { id: 'U6', zone: 'DSK1+2', inStr: 'P10◀U5', outStr: 'P9→U7', keys: ['K40 LOGO', 'K41 TITL', 'K42 STL1', 'K43 STL2', 'K44 KEY1', 'K45 KEY2', 'K46 REC', 'K47 LIVE'] },
+      { id: 'U7', zone: 'USR3+10', inStr: 'P10◀U6', outStr: 'P9→U8', keys: ['K48 F1宏', 'K49 F2宏', 'K50 F3音', 'K51 F4音', 'K52 F5字', 'K53 F6時', 'K54 F7拍', 'K55 F8靜'] },
+      { id: 'U8', zone: 'USR10/TR11', inStr: 'P10◀U7', outStr: 'P9→U9', keys: ['K56 F9備', 'K57 F10備', 'K58 AUX3', 'K59 MUTE', 'K60 MIX', 'K61 WIPE', 'K62 DIP', 'K63 STNG'] },
+      { id: 'U9', zone: 'TR11+TR12', inStr: 'P10◀U8', outStr: 'P9→U10', keys: ['K64 DVE', 'K65 PREV', 'K66 BKGD', 'K67 KEY3', 'K68 DSK3', 'K69 FTB', 'K70 LOCK', 'K71 NORM'] },
+      { id: 'U10', zone: 'RPLY+CUT', inStr: 'P10◀U9', outStr: 'P9→U11', keys: ['K72 IN', 'K73 OUT', 'K74 MARK', 'K75 RPLY', 'K76 PG-', 'K77 PG+', 'K78 CUT', 'K79 AUTO'] },
+      { id: 'U11', zone: 'E1–8壓', inStr: 'P10◀U10', outStr: 'P9→U12', keys: ['K80 E1壓', 'K81 E2壓', 'K82 E3壓', 'K83 E4壓', 'K84 E5壓', 'K85 E6壓', 'K86 E7壓', 'K87 E8壓'] },
+      { id: 'U12', zone: 'E9–10/E5–7', inStr: 'P10◀U11', outStr: 'P9→U13', keys: ['K88 E9壓', 'K89 E10壓', 'E5監聽_A', 'E5監聽_B', 'E6_X_A', 'E6_X_B', 'E7_Y_A', 'E7_Y_B'] },
+      { id: 'U13', zone: 'E8–10+空', inStr: 'P10◀U12', outStr: 'P9→G42', keys: ['E8縮_A', 'E8縮_B', 'E9透_A', 'E9透_B', 'E10秒_A', 'E10秒_B', 'G: 預留1', 'H: 預留2'] }
+    ];
+
+    function renderSheet2() {
+      const grid = document.getElementById('sheet2-chips-grid');
+      const pinNums = [11, 12, 13, 14, 3, 4, 5, 6];
+      const letters = 'ABCDEFGH';
+      grid.innerHTML = hc165Chips.map(c => `
+        <div class="border border-slate-700 rounded overflow-hidden bg-white">
+          <div class="sheet-accent bg-emerald-50 border-b border-slate-700 px-1 py-0.5 flex items-center justify-between text-xs font-mono">
+            <span><strong>${c.id}</strong> ${c.zone}</span>
+            <label class="cursor-pointer"><input type="checkbox" class="paper-check" /></label>
+          </div>
+          <div class="px-1 py-0.5 bg-slate-50 border-b border-slate-400 flex items-center justify-between text-xs font-mono">
+            <span>${c.inStr}</span>
+            <span class="font-bold text-slate-900">${c.outStr}</span>
+          </div>
+          <table class="chip-table font-mono">
+            <tbody>
+              ${c.keys.map((k, idx) => `
+                <tr>
+                  <td class="w-[36%] bg-slate-50 font-semibold">${letters[idx]}·P${pinNums[idx]}</td>
+                  <td class="w-[64%] truncate">${k}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `).join('') + `
+        <div class="sheet-accent border border-purple-700 bg-purple-50 rounded p-1.5 flex flex-col justify-between text-xs font-mono">
+          <div class="font-bold text-purple-900 border-b border-purple-300 pb-0.5">⚡ 2kHz 高速掃描</div>
+          <div class="text-slate-800 leading-snug">
+            • <strong>U1–10</strong>：80 鍵<br/>
+            • <strong>U11</strong>：E1–8 壓(K80–87)<br/>
+            • <strong>U12</strong>：E9–10壓 + E5–7 AB<br/>
+            • <strong>U13</strong>：E8–10 AB + 2預留
+          </div>
+          <div class="text-purple-900 font-bold border-t border-purple-300 pt-0.5">Timer 500μs 零丟步</div>
+        </div>
+      `;
+    }
+
+    // ==================== SHEET 3 DATA: 13x(2x3) PODS + 15x 2.25" ST7789P + 10x EC11 ====================
+    const pinMapLookup = (keyNum) => {
+      const chipIdx = Math.floor(keyNum / 8) + 1;
+      const bitIdx = keyNum % 8;
+      const pinNums = [11, 12, 13, 14, 3, 4, 5, 6];
+      return `U${chipIdx}.${'ABCDEFGH'[bitIdx]}·P${pinNums[bitIdx]}`;
+    };
+
+    function keyCell(kNum, name) {
+      return `
+        <div class="border border-slate-600 rounded bg-white px-1 py-0.5 flex flex-col justify-between leading-tight text-xs font-mono">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900">K${kNum}</span>
+            <span class="text-slate-600">#${kNum}</span>
+          </div>
+          <div class="font-bold text-slate-900 truncate">${name}</div>
+          <div class="text-slate-700 border-t border-slate-300 truncate">${pinMapLookup(kNum)}</div>
+        </div>
+      `;
+    }
+
+    function renderSheet3Pod(pod) {
+      return `
+        <div class="border ${pod.border} rounded p-1 bg-white flex flex-col justify-between gap-0.5">
+          <div class="sheet-accent ${pod.hdrBg} border-b ${pod.hdrBorder} rounded-t px-1 py-0.5 flex items-center justify-between text-xs font-mono leading-tight">
+            <span class="font-bold ${pod.hdrText} truncate">🖥️ ${pod.lcd} · ${pod.cs}</span>
+            <span class="text-slate-800 font-semibold shrink-0">${pod.title}</span>
+          </div>
+          <div class="grid grid-cols-3 gap-0.5">
+            ${pod.keys.map((n, idx) => keyCell(pod.start + idx, n)).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSheet3() {
+      const topPods = [
+        {
+          lcd: 'LCD #14 · GPB5 · 旋鈕模組 A (K80–85)',
+          cells: [
+            { k: 'K80', name: 'E1 主音量', sub: 'G6/7·U11.A' },
+            { k: 'K81', name: 'E2 主持麥1', sub: 'G15/16·U11.B' },
+            { k: 'K82', name: 'E3 來賓麥2', sub: 'G17/18·U11.C' },
+            { k: 'K83', name: 'E4 VTR音', sub: 'G38/39·U11.D' },
+            { k: 'K84', name: 'E5 監聽', sub: 'U12.CD·U11.E' },
+            { k: 'K85', name: 'E6 PIP-X', sub: 'U12.EF·U11.F' }
+          ]
+        },
+        {
+          lcd: 'LCD #15 · GPB6 · 旋鈕模組 B (K86–90+T-Bar)',
+          cells: [
+            { k: 'K86', name: 'E7 PIP-Y', sub: 'U12.GH·U11.G' },
+            { k: 'K87', name: 'E8 PIP縮放', sub: 'U13.AB·U11.H' },
+            { k: 'ADC0', name: 'T-Bar %', sub: 'G1 · K78/79' },
+            { k: 'K88', name: 'E9 DSK透', sub: 'U13.CD·U12.A' },
+            { k: 'K89', name: 'E10 轉場秒', sub: 'U13.EF·U12.B' },
+            { k: 'K90', name: 'Jog TC碼', sub: 'G4/5·4.7k上拉' }
+          ]
+        }
+      ];
+      document.getElementById('sheet3-top-pods').innerHTML = topPods.map(tp => `
+        <div class="sheet-accent border border-purple-700 bg-purple-50 rounded p-1 flex flex-col justify-between gap-0.5">
+          <div class="font-bold text-purple-900 font-mono text-xs border-b border-purple-300 pb-0.5 truncate">🖥️ ${tp.lcd}</div>
+          <div class="grid grid-cols-3 gap-0.5">
+            ${tp.cells.map(c => `
+              <div class="bg-white border border-purple-300 rounded px-1 py-0.5 font-mono text-xs leading-tight">
+                <div class="font-bold text-purple-950 truncate">${c.k} ${c.name}</div>
+                <div class="text-slate-700 truncate">${c.sub}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      const leftPods = [
+        { lcd: 'LCD #1', cs: 'GPA0', title: 'DSK 1', start: 36, keys: ['DSK1', 'DSK2', 'PIP1', 'PIP2', 'LOGO', 'TITLE'], border: 'border-amber-700', hdrBg: 'bg-amber-50', hdrBorder: 'border-amber-300', hdrText: 'text-amber-900' },
+        { lcd: 'LCD #2', cs: 'GPA1', title: 'DSK 2', start: 42, keys: ['STILL1', 'STILL2', 'KEY1', 'KEY2', 'REC', 'LIVE'], border: 'border-amber-700', hdrBg: 'bg-amber-50', hdrBorder: 'border-amber-300', hdrText: 'text-amber-900' },
+        { lcd: 'LCD #3', cs: 'GPA2', title: 'USER 1', start: 48, keys: ['F1宏1', 'F2宏2', 'F3音1', 'F4音2', 'F5字幕', 'F6計時'], border: 'border-purple-700', hdrBg: 'bg-purple-50', hdrBorder: 'border-purple-300', hdrText: 'text-purple-900' },
+        { lcd: 'LCD #4', cs: 'GPA3', title: 'PGM 1', start: 18, keys: ['CAM1', 'CAM2', 'CAM3', 'CAM4', 'CAM5', 'CAM6'], border: 'border-red-700', hdrBg: 'bg-red-50', hdrBorder: 'border-red-300', hdrText: 'text-red-900' },
+        { lcd: 'LCD #5', cs: 'GPA4', title: 'PGM 2', start: 24, keys: ['CAM7', 'CAM8', 'PC1', 'PC2', 'MV1', 'MV2'], border: 'border-red-700', hdrBg: 'bg-red-50', hdrBorder: 'border-red-300', hdrText: 'text-red-900' },
+        { lcd: 'LCD #6', cs: 'GPA5', title: 'PGM 3', start: 30, keys: ['VTR1', 'VTR2', 'PPT', 'GFX1', 'AUX1', 'AUX2'], border: 'border-red-700', hdrBg: 'bg-red-50', hdrBorder: 'border-red-300', hdrText: 'text-red-900' },
+        { lcd: 'LCD #7', cs: 'GPA6', title: 'PVW 1', start: 0, keys: ['CAM1', 'CAM2', 'CAM3', 'CAM4', 'CAM5', 'CAM6'], border: 'border-emerald-700', hdrBg: 'bg-emerald-50', hdrBorder: 'border-emerald-300', hdrText: 'text-emerald-900' },
+        { lcd: 'LCD #8', cs: 'GPA7', title: 'PVW 2', start: 6, keys: ['CAM7', 'CAM8', 'PC1', 'PC2', 'MV1', 'MV2'], border: 'border-emerald-700', hdrBg: 'bg-emerald-50', hdrBorder: 'border-emerald-300', hdrText: 'text-emerald-900' },
+        { lcd: 'LCD #9', cs: 'GPB0', title: 'PVW 3', start: 12, keys: ['VTR1', 'VTR2', 'PPT', 'GFX1', 'AUX1', 'AUX2'], border: 'border-emerald-700', hdrBg: 'bg-emerald-50', hdrBorder: 'border-emerald-300', hdrText: 'text-emerald-900' }
+      ];
+      document.getElementById('sheet3-left-pods').innerHTML = leftPods.map(renderSheet3Pod).join('');
+
+      const rightPods = [
+        { lcd: 'LCD #10', cs: 'GPB1', title: 'USER 2', start: 54, keys: ['F7抓拍', 'F8靜音', 'F9備1', 'F10備2', 'AUX3', 'MUTE'], border: 'border-purple-700', hdrBg: 'bg-purple-50', hdrBorder: 'border-purple-300', hdrText: 'text-purple-900' },
+        { lcd: 'LCD #11', cs: 'GPB2', title: 'TRANS 1', start: 60, keys: ['MIX', 'WIPE', 'DIP', 'STING', 'DVE', 'PREV'], border: 'border-blue-700', hdrBg: 'bg-blue-50', hdrBorder: 'border-blue-300', hdrText: 'text-blue-900' },
+        { lcd: 'LCD #12', cs: 'GPB3', title: 'TRANS 2', start: 66, keys: ['BKGD', 'KEY3', 'DSK3', 'FTB', 'LOCK', 'NORM'], border: 'border-blue-700', hdrBg: 'bg-blue-50', hdrBorder: 'border-blue-300', hdrText: 'text-blue-900' },
+        { lcd: 'LCD #13', cs: 'GPB4', title: 'REPLAY', start: 72, keys: ['IN', 'OUT', 'MARK', 'RPLY', 'PG-', 'PG+'], border: 'border-cyan-700', hdrBg: 'bg-cyan-50', hdrBorder: 'border-cyan-300', hdrText: 'text-cyan-900' }
+      ];
+      document.getElementById('sheet3-right-pods').innerHTML = rightPods.map(renderSheet3Pod).join('');
+
+      document.getElementById('sheet3-right-bottom').innerHTML = `
+        <div class="col-span-2 sheet-accent border border-amber-700 bg-amber-50 rounded p-1 text-xs flex flex-col justify-between">
+          <div class="font-bold text-amber-950">🎚️ T-Bar (B10K)</div>
+          <div class="font-mono leading-tight text-slate-900">Wiper➔<strong>G1</strong>+100nF<br/>讀值顯示於 LCD#15</div>
+        </div>
+        ${keyCell(78, 'CUT')}
+        ${keyCell(79, 'AUTO')}
+        <div class="col-span-2 sheet-accent border border-purple-700 bg-purple-50 rounded p-1 text-xs flex flex-col justify-between">
+          <div class="font-bold text-purple-950">🎛️ Jog (KEY 90)</div>
+          <div class="font-mono leading-tight text-slate-900">A=G4 / B=G5<br/><strong>4.7kΩ上拉3.3V</strong></div>
+        </div>
+      `;
+    }
+
+    // ==================== SHEET 4 DATA: 22-ITEM BOM & 5-STAGE QA ====================
+    const bomItems = [
+      ['主控開發板', 'ESP32-S3-DevKitC-1 (N16R8) 44P 雙Type-C', '1 / 1 塊', '必選 16MB Flash+8MB PSRAM'],
+      ['有線乙太網模組', 'W5500 SPI 模組 (USR-ES1 / 10P 藍板)', '1 / 1 塊', 'G10–14 + G21；走線<5cm'],
+      ['15×長條彩色屏', '2.25" 76×284 ST7789P 模組 (ZJY225 4-SPI)', '15 / 17 塊', '每2×3配1屏+2旋鈕屏; 備2'],
+      ['SPI 片選擴充IC', 'MCP23017-E/SP (16-Bit I2C 擴充)', '1 / 2 片', '16/16滿載! GPA0–7/GPB0–6=CS1–15, GPB7=RES'],
+      ['獨立 3.3V 降壓', '5V→3.3V/2A DC-DC 模組 (MP1584/MINI360)', '1 / 2 塊', '專供 15×彩屏 (~330mA實測負載)'],
+      ['系統 OLED (備用)', '1.3" SH1106 I2C OLED (4針 0x3C)', '0–1 塊', '可與 MCP 共掛 I2C G8/G9'],
+      ['移位擴充晶片', 'SN74HC165D (SOP-16) / SN74HC165N', '13 / 15 片', 'U1–U13 共佔 GPIO 40/41/42'],
+      ['上拉排阻 (8路)', 'A103J 9 腳單列排阻 (10kΩ × 8)', '13 / 15 條', 'Pin1 圓點端接 3.3V 上拉'],
+      ['機械按鍵軸體', '凱華 Choc 矮軸 / 佳達隆靜音紅軸', '80 / 90 顆', '選線性靜音避免錄進麥克風'],
+      ['雙層透明鍵帽', '1U 雙層可夾標籤/無刻透明鍵帽', '80 / 90 顆', '無字透明鍵帽，標籤交由15彩屏'],
+      ['RGB Tally 燈珠', 'SK6812 MINI-E (3528 反貼) 或燈條', '80 / 90 顆', '焊壞備品必多買；缺角=5V'],
+      ['T-Bar 推桿', 'ALPS RS6011 / Bourns PTA6043 (B10K)', '1 / 1 支', '⚠️ 必買 B10K 線性，禁 A10K'],
+      ['頂部功能旋鈕', '5 腳帶按壓 EC11 (20脈衝 15mm半軸)', '10 / 12 組', '含鋁帽(K80–89) E1–4直連/5–10進165'],
+      ['Jog 時間軸滾盤', '60mm 5V CNC 手輪 MPG 100PPR (NPN開漏)', '1 / 1 顆', '⚠️ 必選 5V NPN 開漏輸出型'],
+      ['退耦與濾波電容', '100nF (104) 陶瓷電容', '24 / 35 顆', '13片HC165 + MCP + T-Bar + 15彩屏'],
+      ['防抖電容 (選配)', '10nF (103) 陶瓷電容', '20 / 30 顆', '並聯 10×EC11 A/B 對地防抖'],
+      ['上拉/限流電阻', '4.7kΩ / 10kΩ / 33Ω / 330Ω 1/4W 包', '1 組', 'Jog 4.7kΩ上拉3.3V·SPI 33Ω'],
+      ['電源大電容', '470μF / 10V (或 1000μF/16V) 電解', '1–2 / 3 顆', '5V 總入口吸收開機浪湧'],
+      ['電平轉換 (選配)', 'SN74AHCT125N (3.3V 轉 5V)', '0–1 片', '燈鏈資料線 >15cm 時加裝'],
+      ['5V 穩壓電源', '5V / 5A–6A 電源 + DC-099 母座', '1 / 1 套', 'LED #0/#35/#79 三點補電(4.8A峰)'],
+      ['15×LCD 熱拔連接', '8P 1.0/2.54mm 排母或FFC線 + FFC小轉板', '15 / 18 組', '方便單塊拆換高2寬3模組彩屏'],
+      ['內部配線與耗材', '20AWG 矽膠電源線 + 28AWG 訊號線', '1 / 1 批', '5V/GND 用粗線星形接地']
+    ];
+
+    const checklistData = [
+      ['階段1', '焊好 5V/5A–6A 座 + 470μF + 5V→3.3V/2A 降壓模組 (15屏~330mA) + 星形 GND'],
+      ['階段1', '斷電量測 5V-GND 與兩組 3.3V-GND 阻值均 > 10kΩ (無短路)'],
+      ['階段2', '確認 GPIO 35/36/37 (PSRAM) 與 0/3/45/46 (Strapping) 全懸空'],
+      ['階段2', 'W5500 & 15×LCD 共 SPI2(G11/12)；DC=G47；MCP GPA0–7/GPB0–6=CS1–15, GPB7=RES'],
+      ['階段3', '確認 U1–U13 P15=GND、U1.P10=GND、U13.P9 進 G42 (80鍵+E1–10)'],
+      ['階段3', '確認每片 74HC165 已裝 A103J 上拉排阻與 100nF 退耦電容'],
+      ['階段4', '確認 GPIO 48 串 330Ω 再接 LED #0..#79 DIN (缺角=5V, 對角=GND)'],
+      ['階段4', '5V/GND 粗線已補電至 LED #0 (首)、#35 (PGM Pod6末)、#79 (T-Bar尾)'],
+      ['階段5', 'Jog(K90) A/B 4.7kΩ 上拉 3.3V (≤3.3V)；開啟 2kHz 掃描 U11–13'],
+      ['階段5', 'T-Bar Wiper 接 G1 + 100nF 對地，量測彩屏 3.3V/2A 電壓穩定']
+    ];
+
+    function renderSheet4() {
+      document.getElementById('sheet4-bom-rows').innerHTML = bomItems.map((b, i) => `
+        <tr>
+          <td class="text-center"><input type="checkbox" class="paper-check cursor-pointer" /></td>
+          <td class="text-center font-mono">${i + 1}</td>
+          <td class="font-bold">${b[0]}</td>
+          <td class="font-mono">${b[1]}</td>
+          <td class="text-center font-mono">${b[2]}</td>
+          <td>${b[3]}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('sheet4-checklist-rows').innerHTML = checklistData.map((c, i) => `
+        <tr>
+          <td class="w-[8%] text-center"><input type="checkbox" class="paper-check cursor-pointer" /></td>
+          <td class="w-[18%] font-mono font-bold bg-slate-50 text-center">${c[0]}</td>
+          <td class="w-[74%]">${i + 1}. ${c[1]}</td>
+        </tr>
+      `).join('');
+    }
+
+    // ==================== CONTROLS ====================
+    document.getElementById('btn-print').onclick = () => window.print();
+
+    document.getElementById('btn-bw').onclick = (e) => {
+      document.body.classList.toggle('bw-mode');
+      const isBw = document.body.classList.contains('bw-mode');
+      e.target.textContent = isBw ? '🎨 切回彩色工程圖模式' : '⬛ 切換黑白雷射高對比模式';
+    };
+
+    document.getElementById('btn-layout').onclick = (e) => {
+      const isA4 = document.body.classList.contains('preview-a4');
+      document.body.classList.toggle('preview-a4', !isA4);
+      document.body.classList.toggle('preview-full', isA4);
+      e.target.textContent = isA4 ? '📐 切回 A4 橫式比例預覽' : '📐 切換為全寬連續捲動';
+    };
+
+    document.getElementById('btn-reset-checks').onclick = () => {
+      document.querySelectorAll('.paper-check').forEach(el => { el.checked = false; });
+    };
+
+    renderSheet1();
+    renderSheet2();
+    renderSheet3();
+    renderSheet4();
+  </script>
+</body>
+</html>

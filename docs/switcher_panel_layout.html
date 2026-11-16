@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32-S3 導播切換台 · 80鍵(13組高2寬3+2) + 10×EC11 + 15×2.25吋全彩螢幕配置圖</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    .tbar-slider {
+      writing-mode: vertical-lr;
+      direction: rtl;
+      width: 24px;
+      height: 76px;
+      cursor: ns-resize;
+      accent-color: #3b82f6;
+    }
+    .tally-pgm {
+      background-color: #ef4444;
+      border-color: #dc2626;
+      color: #ffffff;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.45);
+    }
+    .tally-pvw {
+      background-color: #22c55e;
+      border-color: #16a34a;
+      color: #052e16;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.45);
+    }
+    .key-amber {
+      background-color: #f59e0b;
+      border-color: #d97706;
+      color: #1c1917;
+      box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+    }
+    .key-blue {
+      background-color: #3b82f6;
+      border-color: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+    }
+    .key-purple {
+      background-color: #8b5cf6;
+      border-color: #7c3aed;
+      color: #ffffff;
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.45);
+    }
+    .trace-hit {
+      box-shadow: 0 0 0 2px #f59e0b;
+    }
+    .lcd-bar {
+      background-color: #090d16;
+      color: #f8fafc;
+      border: 1.5px solid #06b6d4;
+      box-shadow: inset 0 0 8px rgba(6, 182, 212, 0.22);
+    }
+    .lcd-hit {
+      border-color: #f59e0b !important;
+      box-shadow: 0 0 0 2px #f59e0b, inset 0 0 10px rgba(245, 158, 11, 0.35);
+    }
+    .mat-row {
+      box-shadow: 0 0 0 2px #22c55e;
+      border-color: #22c55e !important;
+    }
+    .mat-col {
+      box-shadow: 0 0 0 2px #38bdf8;
+      border-color: #38bdf8 !important;
+    }
+    .mat-cross {
+      box-shadow: 0 0 0 2px #f59e0b, 0 0 10px rgba(245, 158, 11, 0.75);
+      border-color: #f59e0b !important;
+    }
+    .jog-dial {
+      transition: transform 0.12s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-transparent text-[var(--foreground)] antialiased p-1">
+  <div class="bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] rounded-xl p-1.5 shadow-sm max-w-[1160px] mx-auto">
+
+    <!-- ==================== TOP ROW: OLED + MODULAR 2x3 ENCODER PODS (LCD #14 & LCD #15) ==================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-1 mb-1">
+      <!-- 1.3" Main I2C OLED + Satellite API Bar -->
+      <div class="lg:col-span-4 bg-[var(--background)] border border-[var(--border)] rounded-lg p-1 flex flex-col justify-between gap-0.5">
+        <div class="flex items-center justify-between gap-1 flex-wrap">
+          <div class="flex items-center gap-1">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="text-xs font-semibold leading-none">80鍵(13×[2×3]+2) · 10旋鈕 · 15彩屏</span>
+          </div>
+          <div class="flex items-center gap-0.5">
+            <button type="button" data-mode="usb" class="mode-btn text-xs px-1.5 py-0 rounded border cursor-pointer">USB</button>
+            <button type="button" data-mode="eth" class="mode-btn text-xs px-1.5 py-0 rounded border cursor-pointer">W5500</button>
+            <button type="button" data-mode="wifi" class="mode-btn text-xs px-1.5 py-0 rounded border cursor-pointer">Wi-Fi</button>
+          </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-[var(--muted-foreground)] border-t border-[var(--border)] pt-0.5 leading-none gap-1">
+          <span id="oled-ip" class="font-mono text-[var(--foreground)] truncate">192.168.7.2:16622</span>
+          <span class="truncate">PGM:<strong id="oled-pgm" class="text-red-500">CAM 1</strong> · PVW:<strong id="oled-pvw" class="text-emerald-500">CAM 2</strong></span>
+          <span id="oled-page" class="font-mono font-semibold text-[var(--primary)] shrink-0">PAGE 1</span>
+        </div>
+        <div class="text-xs font-mono text-[var(--muted-foreground)] leading-none truncate">
+          U1–U13(104路·G40/41/42) · 1×MCP(CS1–15+RES) · 28/36 GPIO
+        </div>
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded px-1.5 py-0.5 font-mono text-xs truncate leading-tight" id="api-log" title="Companion Satellite API 即時指令">
+          &gt; READY (80 KEYS = 13×[2×3]+2 · 15×2.25" ST7789P)
+        </div>
+      </div>
+
+      <!-- Left Encoder Pod (LCD #14 · GPB5 + 2x3 E1-E6 K80-85) -->
+      <div class="lg:col-span-4 bg-[var(--background)] border border-cyan-500/40 rounded-lg p-1 flex flex-col justify-between gap-0.5">
+        <button type="button" id="lcd-14" class="lcd-bar w-full rounded px-1 py-0.5 text-left cursor-pointer transition-all"></button>
+        <div class="grid grid-cols-3 gap-0.5" id="encoders-pod-a"></div>
+      </div>
+
+      <!-- Right Encoder Pod (LCD #15 · GPB6 + 2x2 E7-E10 K86-89 + T-Bar/Jog Cell) -->
+      <div class="lg:col-span-4 bg-[var(--background)] border border-cyan-500/40 rounded-lg p-1 flex flex-col justify-between gap-0.5">
+        <button type="button" id="lcd-15" class="lcd-bar w-full rounded px-1 py-0.5 text-left cursor-pointer transition-all"></button>
+        <div class="grid grid-cols-3 gap-0.5 items-stretch">
+          <div class="col-span-2 grid grid-cols-2 gap-0.5" id="encoders-pod-b"></div>
+          <div class="bg-[var(--card)] border border-[var(--border)] rounded px-1 py-0.5 flex flex-col justify-between text-xs font-mono leading-tight">
+            <div class="text-amber-500 font-semibold truncate">🎚️ T-Bar: <span id="top-tbar-pct">0%</span></div>
+            <div class="text-purple-500 font-semibold truncate">🎛️ Jog: <span id="top-jog-frame">0F</span></div>
+            <div class="text-[var(--muted-foreground)] truncate">K78/79+K90</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MAIN PANEL: LEFT 3x3 PODS (POD 1-9 = 54 KEYS) + RIGHT 2x2 PODS (POD 10-13 = 24 KEYS) + T-BAR/CUT/AUTO/JOG ==================== -->
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-1 items-stretch">
+
+      <!-- Left/Center Main Section (7/12): 3x3 Grid of 2x3 Pods (54 Keys + 9 Screens) -->
+      <div class="xl:col-span-7 bg-[var(--background)] border border-[var(--border)] rounded-lg p-1 flex flex-col justify-between gap-1">
+        <!-- Top Tier: DSK 1 (Pod 1) + DSK 2 (Pod 2) + USER 1 (Pod 3) -->
+        <div>
+          <div class="flex items-center justify-between text-xs font-semibold leading-none mb-0.5 px-0.5">
+            <span class="text-amber-500">▲ 上層：DSK 圖層 &amp; USER 巨集 1 (Pod 1–3 · KEY 36–53 · LCD #1–#3)</span>
+            <span class="font-mono text-[var(--muted-foreground)]">每組高2寬3配1螢幕</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-1" id="tier-top"></div>
+        </div>
+
+        <!-- Middle Tier: PGM 1-6 (Pod 4) + PGM 7-12 (Pod 5) + PGM 13-18 (Pod 6) -->
+        <div>
+          <div class="flex items-center justify-between text-xs font-semibold leading-none mb-0.5 px-0.5">
+            <span class="text-red-500">● 中層：PGM 主輸出母線 (Pod 4–6 · KEY 18–35 · LCD #4–#6 · #35補電②)</span>
+            <span class="font-mono text-[var(--muted-foreground)]">18路主切</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-1" id="tier-pgm"></div>
+        </div>
+
+        <!-- Bottom Tier: PVW 1-6 (Pod 7) + PVW 7-12 (Pod 8) + PVW 13-18 (Pod 9) -->
+        <div>
+          <div class="flex items-center justify-between text-xs font-semibold leading-none mb-0.5 px-0.5">
+            <span class="text-emerald-500">▼ 下層：PVW 預監母線 (Pod 7–9 · KEY 0–17 · LCD #7–#9 · #0補電①)</span>
+            <span class="font-mono text-[var(--muted-foreground)]">18路預監</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-1" id="tier-pvw"></div>
+        </div>
+      </div>
+
+      <!-- Right Control Section (5/12): 2x2 Pods (Pod 10-13 = 24 Keys) + [T-Bar / K78 CUT / K79 AUTO / Jog K90] -->
+      <div class="xl:col-span-5 bg-[var(--background)] border border-[var(--border)] rounded-lg p-1 flex flex-col justify-between gap-1">
+        <div class="flex items-center justify-between text-xs font-semibold leading-none px-0.5">
+          <span class="text-blue-500">▶ 右側控制區：4×[2×3] 模組 (Pod 10–13) + T-Bar 直切 + Jog</span>
+          <span class="font-mono text-[var(--muted-foreground)]">K54–79 + K90</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-1 flex-1 items-stretch">
+          <!-- Left Sub-column (8/12): 2x2 Grid of 2x3 Pods (Pod 10-13) -->
+          <div class="sm:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-1 content-between" id="tier-right-pods"></div>
+
+          <!-- Right Sub-column (4/12): T-Bar + Direct Keys (K78 CUT / K79 AUTO) + Jog Wheel (K90) -->
+          <div class="sm:col-span-4 flex flex-col justify-between gap-1">
+            <!-- T-Bar + CUT (K78) & AUTO (K79) -->
+            <div id="tbar-card" class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-1 flex-1 flex flex-col items-center justify-between gap-1 transition-opacity">
+              <div class="w-full flex items-center justify-between text-xs leading-none">
+                <span class="font-semibold">T-Bar</span>
+                <span class="font-mono text-rose-500 font-semibold">G1</span>
+              </div>
+              <div class="flex items-center gap-1.5 my-auto">
+                <input id="tbar-range" type="range" min="0" max="100" value="0" class="tbar-slider" aria-label="T-Bar 推桿" />
+                <div class="flex flex-col items-center text-xs font-mono leading-tight">
+                  <span id="tbar-pct" class="font-bold text-[var(--primary)]">0%</span>
+                  <span class="text-[var(--muted-foreground)]">100nF</span>
+                </div>
+              </div>
+              <!-- Dedicated CUT (K78) & AUTO (K79) beneath T-Bar -->
+              <div class="w-full border-t border-[var(--border)] pt-1">
+                <div class="text-xs font-mono text-center text-[var(--muted-foreground)] leading-none mb-0.5">直切獨立鍵 · U10G/H · L78/79</div>
+                <div class="grid grid-cols-2 gap-1" id="direct-cut-matrix"></div>
+              </div>
+            </div>
+
+            <!-- Jog Wheel (K90) -->
+            <div id="jog-card" class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-1 flex flex-col justify-between gap-1 transition-opacity">
+              <div class="flex items-center justify-between gap-1">
+                <div class="min-w-0 leading-none">
+                  <div class="text-xs font-semibold truncate">Jog (K90)</div>
+                  <div class="text-xs font-mono text-purple-500 truncate mt-0.5">G4/G5</div>
+                </div>
+                <span id="jog-frame" class="text-xs font-mono font-bold text-[var(--primary)]">0</span>
+              </div>
+              <div class="flex items-center justify-between gap-1">
+                <button type="button" id="jog-left" class="text-xs px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--background)] hover:border-[var(--primary)] cursor-pointer font-medium">◀</button>
+                <div class="relative w-7 h-7 rounded-full border-2 border-[var(--primary)] bg-[var(--background)] flex items-center justify-center shrink-0">
+                  <div id="jog-needle" class="jog-dial w-full h-full flex items-start justify-center pt-0.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--primary)]"></span>
+                  </div>
+                </div>
+                <button type="button" id="jog-right" class="text-xs px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--background)] hover:border-[var(--primary)] cursor-pointer font-medium">▶</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== COMPACT 15-SCREEN MCP23017 MAPPING STRIP ==================== -->
+    <div class="mt-1 bg-[var(--background)] border border-cyan-500/40 rounded-lg p-1">
+      <div class="flex items-center justify-between gap-1 flex-wrap mb-0.5">
+        <span class="text-xs font-semibold text-cyan-500">🖥️ 15× 2.25" (76×284 ST7789P · 寬56.34/板63.2mm ≈ 3鍵57.15mm) 一對一模組分配表</span>
+        <span class="text-xs font-mono text-[var(--muted-foreground)]">單顆 MCP23017 (0x20)：GPA0–7=CS1–8 · GPB0–6=CS9–15 · GPB7=共用RES · ~330mA (獨立3.3V/2A降壓)</span>
+      </div>
+      <div class="grid grid-cols-3 sm:grid-cols-5 gap-1 text-xs font-mono" id="lcd-summary-strip"></div>
+    </div>
+
+    <!-- ==================== BOTTOM GPIO TRACE & EXPLANATION BOX ==================== -->
+    <div id="bottom-explain-box" class="mt-1 bg-[var(--background)] border border-[var(--border)] rounded-lg p-1 flex flex-col gap-1">
+      <div class="flex items-center gap-1 flex-wrap" id="trace-bar"></div>
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded px-2 py-1 flex flex-col gap-0.5 text-xs leading-snug">
+        <div id="explain-primary" class="font-mono font-medium text-[var(--foreground)] truncate">
+          🖥️ 每組高2寬3配1塊螢幕 (15×2.25" ST7789P)：點擊任一螢幕 (LCD #1–#15)、按鍵 (K0–79) 或旋鈕 (K80–89)，立即查看 GPIO 與片選走線
+        </div>
+        <div id="explain-legend" class="text-[var(--muted-foreground)] truncate">
+          📖 15彩屏共用：SPI2 (G11/G12/DC=G47) + MCP23017 (CS1–15 + GPB7=RES) ｜ 掃描鏈：U1–U13 ➔ G42 (80鍵+E1–10) + E1–4直連 + LED G48(#0/#35/#79三點補電)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== 1. 18-SOURCE PVW / PGM + 13x (2x3) POD DEFINITIONS ====================
+    const busSources = [
+      { l1: 'CAM', l2: '1', short: 'CAM1', name: 'CAM 1' },
+      { l1: 'CAM', l2: '2', short: 'CAM2', name: 'CAM 2' },
+      { l1: 'CAM', l2: '3', short: 'CAM3', name: 'CAM 3' },
+      { l1: 'CAM', l2: '4', short: 'CAM4', name: 'CAM 4' },
+      { l1: 'CAM', l2: '5', short: 'CAM5', name: 'CAM 5' },
+      { l1: 'CAM', l2: '6', short: 'CAM6', name: 'CAM 6' },
+      { l1: 'CAM', l2: '7', short: 'CAM7', name: 'CAM 7' },
+      { l1: 'CAM', l2: '8', short: 'CAM8', name: 'CAM 8' },
+      { l1: 'PC', l2: '1', short: 'PC1', name: 'PC 1' },
+      { l1: 'PC', l2: '2', short: 'PC2', name: 'PC 2' },
+      { l1: 'MV', l2: '1', short: 'MV1', name: 'MV 1' },
+      { l1: 'MV', l2: '2', short: 'MV2', name: 'MV 2' },
+      { l1: 'VTR', l2: '1', short: 'VTR1', name: 'VTR 1' },
+      { l1: 'VTR', l2: '2', short: 'VTR2', name: 'VTR 2' },
+      { l1: 'PPT', l2: '簡報', short: 'PPT', name: 'PPT' },
+      { l1: 'GFX', l2: '1', short: 'GFX1', name: 'GFX 1' },
+      { l1: 'AUX', l2: '1', short: 'AUX1', name: 'AUX 1' },
+      { l1: 'AUX', l2: '2', short: 'AUX2', name: 'AUX 2' }
+    ];
+
+    const dskItems = {
+      36: { key: 36, l1: 'DSK', l2: '1', short: 'DSK1', style: 'amber' },
+      37: { key: 37, l1: 'DSK', l2: '2', short: 'DSK2', style: 'amber' },
+      38: { key: 38, l1: 'PIP', l2: '1', short: 'PIP1', style: 'blue' },
+      39: { key: 39, l1: 'PIP', l2: '2', short: 'PIP2', style: 'blue' },
+      40: { key: 40, l1: 'LOGO', l2: '台標', short: 'LOGO', style: 'amber' },
+      41: { key: 41, l1: 'TITLE', l2: '字幕', short: 'TITLE', style: 'amber' },
+      42: { key: 42, l1: 'STILL', l2: '1', short: 'STL1', style: 'blue' },
+      43: { key: 43, l1: 'STILL', l2: '2', short: 'STL2', style: 'blue' },
+      44: { key: 44, l1: 'KEY', l2: '1', short: 'KEY1', style: 'amber' },
+      45: { key: 45, l1: 'KEY', l2: '2', short: 'KEY2', style: 'amber' },
+      46: { key: 46, l1: 'REC', l2: '錄製', short: 'REC', style: 'red' },
+      47: { key: 47, l1: 'LIVE', l2: '直播', short: 'LIVE', style: 'red' }
+    };
+
+    const userPages = {
+      1: {
+        48: { key: 48, l1: 'F1', l2: '宏1', short: 'F1宏' },
+        49: { key: 49, l1: 'F2', l2: '宏2', short: 'F2宏' },
+        50: { key: 50, l1: 'F3', l2: '音1', short: 'F3音' },
+        51: { key: 51, l1: 'F4', l2: '音2', short: 'F4音' },
+        52: { key: 52, l1: 'F5', l2: '字幕', short: 'F5字' },
+        53: { key: 53, l1: 'F6', l2: '計時', short: 'F6時' },
+        54: { key: 54, l1: 'F7', l2: '抓拍', short: 'F7拍' },
+        55: { key: 55, l1: 'F8', l2: '靜音', short: 'F8靜' },
+        56: { key: 56, l1: 'F9', l2: '備1', short: 'F9備' },
+        57: { key: 57, l1: 'F10', l2: '備2', short: 'F10備' },
+        58: { key: 58, l1: 'AUX', l2: '3', short: 'AUX3' },
+        59: { key: 59, l1: 'MUTE', l2: '總靜', short: 'MUTE' }
+      },
+      2: {
+        48: { key: 48, l1: 'P2.1', l2: '開場', short: '開場' },
+        49: { key: 49, l1: 'P2.2', l2: '嘉賓', short: '嘉賓' },
+        50: { key: 50, l1: 'P2.3', l2: '掌聲', short: '掌聲' },
+        51: { key: 51, l1: 'P2.4', l2: '轉折', short: '轉折' },
+        52: { key: 52, l1: 'P2.5', l2: '人名', short: '人名' },
+        53: { key: 53, l1: 'P2.6', l2: '計時', short: '計時' },
+        54: { key: 54, l1: 'P2.7', l2: '雙分', short: '雙分' },
+        55: { key: 55, l1: 'P2.8', l2: '全靜', short: '全靜' },
+        56: { key: 56, l1: 'P2.9', l2: '金句', short: '金句' },
+        57: { key: 57, l1: 'P2.10', l2: '謝幕', short: '謝幕' },
+        58: { key: 58, l1: 'AUX', l2: '3B', short: 'AUX3' },
+        59: { key: 59, l1: 'MUTE', l2: '靜音', short: 'MUTE' }
+      }
+    };
+
+    const transItems = {
+      60: { key: 60, l1: 'MIX', l2: '溶變', short: 'MIX', id: 'mix' },
+      61: { key: 61, l1: 'WIPE', l2: '劃像', short: 'WIPE', id: 'wipe' },
+      62: { key: 62, l1: 'DIP', l2: '浸色', short: 'DIP', id: 'dip' },
+      63: { key: 63, l1: 'STING', l2: '動畫', short: 'STNG', id: 'sting' },
+      64: { key: 64, l1: 'DVE', l2: '視窗', short: 'DVE', id: 'dve' },
+      65: { key: 65, l1: 'PREV', l2: '預看', short: 'PREV', id: 'prev' },
+      66: { key: 66, l1: 'BKGD', l2: '背景', short: 'BKGD', id: 'bkgd' },
+      67: { key: 67, l1: 'KEY3', l2: '鍵3', short: 'KEY3', id: 'key3' },
+      68: { key: 68, l1: 'DSK3', l2: '層3', short: 'DSK3', id: 'dsk3' },
+      69: { key: 69, l1: 'FTB', l2: '全黑', short: 'FTB', id: 'ftb' },
+      70: { key: 70, l1: 'LOCK', l2: '鎖定', short: 'LOCK', id: 'lock' },
+      71: { key: 71, l1: 'NORM', l2: '標準', short: 'NORM', id: 'norm' }
+    };
+
+    const replayItems = {
+      72: { key: 72, l1: 'IN', l2: '入點', short: 'IN', id: 'in' },
+      73: { key: 73, l1: 'OUT', l2: '出點', short: 'OUT', id: 'out' },
+      74: { key: 74, l1: 'MARK', l2: '標記', short: 'MARK', id: 'mark' },
+      75: { key: 75, l1: 'RPLY', l2: '回放', short: 'RPLY', id: 'replay' },
+      76: { key: 76, l1: 'PG -', l2: '上頁', short: 'PG-', id: 'pg_prev' },
+      77: { key: 77, l1: 'PG +', l2: '下頁', short: 'PG+', id: 'pg_next' }
+    };
+
+    const directCutItems = [
+      { key: 78, l1: 'CUT', l2: '硬切', short: 'CUT', id: 'cut' },
+      { key: 79, l1: 'AUTO', l2: '自動', short: 'AUTO', id: 'auto' }
+    ];
+
+    const encoders = [
+      { key: 80, name: 'E1 主音量', short: 'MST', gpios: 'GPIO 6/7 (PCNT1)', shortGpios: 'G6/7', abChip: 'MCU', swChip: 'U11', uPin: 'U11·A', val: -12, min: -60, max: 12, unit: 'dB', step: 3 },
+      { key: 81, name: 'E2 主持麥1', short: 'MC1', gpios: 'GPIO 15/16 (PCNT2)', shortGpios: 'G15/16', abChip: 'MCU', swChip: 'U11', uPin: 'U11·B', val: -6, min: -60, max: 12, unit: 'dB', step: 3 },
+      { key: 82, name: 'E3 來賓麥2', short: 'MC2', gpios: 'GPIO 17/18 (PCNT3)', shortGpios: 'G17/18', abChip: 'MCU', swChip: 'U11', uPin: 'U11·C', val: -9, min: -60, max: 12, unit: 'dB', step: 3 },
+      { key: 83, name: 'E4 VTR音', short: 'VTR', gpios: 'GPIO 38/39 (ISR)', shortGpios: 'G38/39', abChip: 'MCU', swChip: 'U11', uPin: 'U11·D', val: -15, min: -60, max: 12, unit: 'dB', step: 3 },
+      { key: 84, name: 'E5 監聽耳機', short: 'MON', gpios: 'U12·C/D (2kHz掃描)', shortGpios: 'U12C/D', abChip: 'U12', swChip: 'U11', uPin: 'U11·E', val: -10, min: -60, max: 12, unit: 'dB', step: 3 },
+      { key: 85, name: 'E6 PIP-X', short: 'PX', gpios: 'U12·E/F (2kHz掃描)', shortGpios: 'U12E/F', abChip: 'U12', swChip: 'U11', uPin: 'U11·F', val: 0, min: -100, max: 100, unit: '%', step: 5 },
+      { key: 86, name: 'E7 PIP-Y', short: 'PY', gpios: 'U12·G/H (2kHz掃描)', shortGpios: 'U12G/H', abChip: 'U12', swChip: 'U11', uPin: 'U11·G', val: 0, min: -100, max: 100, unit: '%', step: 5 },
+      { key: 87, name: 'E8 PIP縮放', short: 'P%', gpios: 'U13·A/B (2kHz掃描)', shortGpios: 'U13A/B', abChip: 'U13', swChip: 'U11', uPin: 'U11·H', val: 55, min: 10, max: 100, unit: '%', step: 5 },
+      { key: 88, name: 'E9 DSK透明', short: 'OP', gpios: 'U13·C/D (2kHz掃描)', shortGpios: 'U13C/D', abChip: 'U13', swChip: 'U12', uPin: 'U12·A', val: 100, min: 0, max: 100, unit: '%', step: 10 },
+      { key: 89, name: 'E10 轉場秒', short: 'RT', gpios: 'U13·E/F (2kHz掃描)', shortGpios: 'U13E/F', abChip: 'U13', swChip: 'U12', uPin: 'U12·B', val: 500, min: 100, max: 3000, unit: 'ms', step: 100 }
+    ];
+
+    // 13 Key-Screen Pods (each 2x3 = 6 keys directly beneath 1x 2.25" ST7789P) + Pod A/B for Encoders
+    const keyPods = [
+      { id: 1, cs: 'GPA0', title: 'DSK 1', cat: 'dsk', keys: [36, 37, 38, 39, 40, 41], tier: 'tier-top' },
+      { id: 2, cs: 'GPA1', title: 'DSK 2', cat: 'dsk', keys: [42, 43, 44, 45, 46, 47], tier: 'tier-top' },
+      { id: 3, cs: 'GPA2', title: 'USER 1', cat: 'user', keys: [48, 49, 50, 51, 52, 53], tier: 'tier-top' },
+      { id: 4, cs: 'GPA3', title: 'PGM 1–6', cat: 'pgm', keys: [18, 19, 20, 21, 22, 23], tier: 'tier-pgm' },
+      { id: 5, cs: 'GPA4', title: 'PGM 7–12', cat: 'pgm', keys: [24, 25, 26, 27, 28, 29], tier: 'tier-pgm' },
+      { id: 6, cs: 'GPA5', title: 'PGM 13–18', cat: 'pgm', keys: [30, 31, 32, 33, 34, 35], tier: 'tier-pgm' },
+      { id: 7, cs: 'GPA6', title: 'PVW 1–6', cat: 'pvw', keys: [0, 1, 2, 3, 4, 5], tier: 'tier-pvw' },
+      { id: 8, cs: 'GPA7', title: 'PVW 7–12', cat: 'pvw', keys: [6, 7, 8, 9, 10, 11], tier: 'tier-pvw' },
+      { id: 9, cs: 'GPB0', title: 'PVW 13–18', cat: 'pvw', keys: [12, 13, 14, 15, 16, 17], tier: 'tier-pvw' },
+      { id: 10, cs: 'GPB1', title: 'USER 2', cat: 'user', keys: [54, 55, 56, 57, 58, 59], tier: 'tier-right-pods' },
+      { id: 11, cs: 'GPB2', title: 'TRANS 1', cat: 'trans', keys: [60, 61, 62, 63, 64, 65], tier: 'tier-right-pods' },
+      { id: 12, cs: 'GPB3', title: 'TRANS 2', cat: 'trans', keys: [66, 67, 68, 69, 70, 71], tier: 'tier-right-pods' },
+      { id: 13, cs: 'GPB4', title: 'REPLAY', cat: 'replay', keys: [72, 73, 74, 75, 76, 77], tier: 'tier-right-pods' }
+    ];
+
+    const lcdMeta = {
+      1: { cs: 'MCP.GPA0 (P21)', short: 'DSK 1', range: 'K36–41' },
+      2: { cs: 'MCP.GPA1 (P22)', short: 'DSK 2', range: 'K42–47' },
+      3: { cs: 'MCP.GPA2 (P23)', short: 'USER 1', range: 'K48–53' },
+      4: { cs: 'MCP.GPA3 (P24)', short: 'PGM 1–6', range: 'K18–23' },
+      5: { cs: 'MCP.GPA4 (P25)', short: 'PGM 7–12', range: 'K24–29' },
+      6: { cs: 'MCP.GPA5 (P26)', short: 'PGM 13–18', range: 'K30–35' },
+      7: { cs: 'MCP.GPA6 (P27)', short: 'PVW 1–6', range: 'K0–5' },
+      8: { cs: 'MCP.GPA7 (P28)', short: 'PVW 7–12', range: 'K6–11' },
+      9: { cs: 'MCP.GPB0 (P1)', short: 'PVW 13–18', range: 'K12–17' },
+      10: { cs: 'MCP.GPB1 (P2)', short: 'USER 2', range: 'K54–59' },
+      11: { cs: 'MCP.GPB2 (P3)', short: 'TRANS 1', range: 'K60–65' },
+      12: { cs: 'MCP.GPB3 (P4)', short: 'TRANS 2', range: 'K66–71' },
+      13: { cs: 'MCP.GPB4 (P5)', short: 'REPLAY', range: 'K72–77' },
+      14: { cs: 'MCP.GPB5 (P6)', short: 'EC11 A', range: 'K80–85' },
+      15: { cs: 'MCP.GPB6 (P7)', short: 'EC11 B+Jog', range: 'K86–90' }
+    };
+
+    const chipStyles = {
+      U1: { border: 'border-emerald-500/75', txt: 'text-emerald-500', desc: 'GPIO 40/41/42 ➔ U1 (P10=GND) 跑過 PVW Pod7 (K0–5) + Pod8 (K6–7)' },
+      U2: { border: 'border-teal-500/75', txt: 'text-teal-500', desc: 'GPIO 40/41/42 ➔ U2 跑過 PVW Pod8 (K8–11) + Pod9 (K12–15)' },
+      U3: { border: 'border-amber-500/90', txt: 'text-amber-500', desc: 'GPIO 40/41/42 ➔ U3【跨 PVW/PGM】：A~B PVW Pod9 (K16–17)，C~H PGM Pod4 (K18–23)' },
+      U4: { border: 'border-rose-500/75', txt: 'text-rose-500', desc: 'GPIO 40/41/42 ➔ U4 跑過 PGM Pod5 (K24–29) + Pod6 (K30–31)' },
+      U5: { border: 'border-orange-500/75', txt: 'text-orange-500', desc: 'GPIO 40/41/42 ➔ U5【跨 PGM/DSK】：A~D PGM Pod6 (K32–35)，E~H DSK Pod1 (K36–39)' },
+      U6: { border: 'border-sky-500/75', txt: 'text-sky-500', desc: 'GPIO 40/41/42 ➔ U6 跑過 DSK Pod1 (K40–41) + DSK Pod2 (K42–47)' },
+      U7: { border: 'border-violet-500/75', txt: 'text-violet-500', desc: 'GPIO 40/41/42 ➔ U7 跑過 USER Pod3 (K48–53) + USER Pod10 (K54–55)' },
+      U8: { border: 'border-fuchsia-500/90', txt: 'text-fuchsia-500', desc: 'GPIO 40/41/42 ➔ U8【跨 USER/轉場】：A~D USER Pod10 (K56–59)，E~H TRANS Pod11 (K60–63)' },
+      U9: { border: 'border-indigo-500/90', txt: 'text-indigo-500', desc: 'GPIO 40/41/42 ➔ U9 跑過 TRANS Pod11 (K64–65) + TRANS Pod12 (K66–71)' },
+      U10: { border: 'border-cyan-500/90', txt: 'text-cyan-500', desc: 'GPIO 40/41/42 ➔ U10【回放+直切】：A~F REPLAY Pod13 (K72–77)，G~H CUT(K78)/AUTO(K79)' },
+      U11: { border: 'border-purple-500/90', txt: 'text-purple-500', desc: 'GPIO 40/41/42 ➔ U11【旋鈕按壓1–8】：A~H 接 ENC1–ENC8 S2 下壓鍵 (K80–87)' },
+      U12: { border: 'border-pink-500/90', txt: 'text-pink-500', desc: 'GPIO 40/41/42 ➔ U12【壓9–10 + E5–7】：A~B 接 E9–10 壓(K88–89)；C~H 2kHz掃描 ENC5–7 A/B' },
+      U13: { border: 'border-lime-500/90', txt: 'text-lime-500', desc: 'U13 (末片 P9 ➔ GPIO 42)：A~F 2kHz掃描 ENC8–10 A/B；G~H (P5/P6) 預留 2 路開關' }
+    };
+
+    const traceFilters = [
+      { id: 'dual', label: '⚡ U1–U13+G48' },
+      { id: 'lcd15', label: '🖥️ 15×彩屏 (CS1–15)' },
+      { id: 'matrix', label: '📐 矩陣雙線' },
+      { id: 'U1', label: 'U1(0-7)' },
+      { id: 'U2', label: 'U2(8-15)' },
+      { id: 'U3', label: 'U3(16-23)' },
+      { id: 'U4', label: 'U4(24-31)' },
+      { id: 'U5', label: 'U5(32-39)' },
+      { id: 'U6', label: 'U6(40-47)' },
+      { id: 'U7', label: 'U7(48-55)' },
+      { id: 'U8', label: 'U8(56-63)' },
+      { id: 'U9', label: 'U9(64-71)' },
+      { id: 'U10', label: 'U10(72-79)' },
+      { id: 'U11', label: 'U11(E1-8壓)' },
+      { id: 'U12', label: 'U12(E5-7旋)' },
+      { id: 'U13', label: 'U13(E8-10旋)' },
+      { id: 'led48', label: 'G48燈帶' },
+      { id: 'clean', label: '純導播視角' }
+    ];
+
+    const icPinMap = [11, 12, 13, 14, 3, 4, 5, 6];
+    function chipMeta(key) {
+      const idx = Math.floor(key / 8) + 1;
+      const chipId = 'U' + idx;
+      const offset = key % 8;
+      const pinLetter = 'ABCDEFGH'[offset];
+      return { chipId, pinLetter, icPin: icPinMap[offset], ...chipStyles[chipId] };
+    }
+
+    function matrixMeta(key) {
+      if (key <= 5) return { row: 4 + Math.floor(key / 3), col: key % 3 };
+      if (key <= 11) return { row: 4 + Math.floor((key - 6) / 3), col: 3 + ((key - 6) % 3) };
+      if (key <= 17) return { row: 4 + Math.floor((key - 12) / 3), col: 6 + ((key - 12) % 3) };
+      if (key <= 23) return { row: 2 + Math.floor((key - 18) / 3), col: (key - 18) % 3 };
+      if (key <= 29) return { row: 2 + Math.floor((key - 24) / 3), col: 3 + ((key - 24) % 3) };
+      if (key <= 35) return { row: 2 + Math.floor((key - 30) / 3), col: 6 + ((key - 30) % 3) };
+      if (key <= 41) return { row: Math.floor((key - 36) / 3), col: (key - 36) % 3 };
+      if (key <= 47) return { row: Math.floor((key - 42) / 3), col: 3 + ((key - 42) % 3) };
+      if (key <= 53) return { row: Math.floor((key - 48) / 3), col: 6 + ((key - 48) % 3) };
+      if (key <= 59) return { row: Math.floor((key - 54) / 3), col: 9 + ((key - 54) % 3) };
+      if (key <= 65) return { row: Math.floor((key - 60) / 3), col: 12 + ((key - 60) % 3) };
+      if (key <= 71) return { row: 2 + Math.floor((key - 66) / 3), col: 9 + ((key - 66) % 3) };
+      if (key <= 77) return { row: 2 + Math.floor((key - 72) / 3), col: 12 + ((key - 72) % 3) };
+      return { row: 4, col: key === 78 ? 15 : 16 };
+    }
+
+    const modes = {
+      usb: { ip: '192.168.7.2:16622' },
+      eth: { ip: '192.168.1.50:16622' },
+      wifi: { ip: '192.168.1.88:16622' }
+    };
+
+    const state = {
+      traceFilter: 'dual',
+      activeLcd: null,
+      activeRow: 4,
+      activeCol: 0,
+      mode: 'usb',
+      pvw: 1,
+      pgm: 0,
+      page: 1,
+      dskActive: new Set([36, 40]),
+      userActive: new Set([48]),
+      nextTransActive: new Set(['bkgd', 'key3']),
+      transStyle: 'mix',
+      ftb: false,
+      prevTrans: false,
+      locked: false,
+      normMode: false,
+      replayActive: new Set(),
+      tbarPct: 0,
+      tbarFromTop: false,
+      jogFrame: 0,
+      jogAngle: 0,
+      autoAnimating: false
+    };
+
+    const logEl = document.getElementById('api-log');
+    const explainEl = document.getElementById('explain-primary');
+    function setExplain(primaryText, apiCmd) {
+      if (apiCmd) logEl.textContent = '> ' + apiCmd;
+      if (primaryText) {
+        explainEl.textContent = primaryText;
+        explainEl.title = primaryText;
+      }
+    }
+
+    function logLocked() {
+      setExplain('🔒 面板已鎖定 (LOCKED)：請先點擊 TRANS 2 模組右下角 LOCK 鍵 (KEY 70) 解鎖', 'PANEL LOCKED');
+    }
+
+    function getKeyDisplay(key) {
+      if (key >= 0 && key <= 17) {
+        const s = busSources[key];
+        const on = state.pvw === key;
+        return { l1: s.l1, l2: s.l2, short: s.short, name: 'PVW ' + s.name, active: on, cls: on ? 'tally-pvw font-semibold' : '', lcdCls: on ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300', hover: 'hover:border-emerald-400' };
+      }
+      if (key >= 18 && key <= 35) {
+        const idx = key - 18;
+        const s = busSources[idx];
+        const on = state.pgm === idx && !state.ftb;
+        return { l1: s.l1, l2: s.l2, short: s.short, name: 'PGM ' + s.name, active: on, cls: on ? 'tally-pgm font-semibold' : '', lcdCls: on ? 'bg-red-500 text-white font-bold' : 'bg-slate-900 text-slate-400', hover: 'hover:border-red-400' };
+      }
+      if (key >= 36 && key <= 47) {
+        const d = dskItems[key];
+        const on = state.dskActive.has(key);
+        const cls = on ? (d.style === 'red' ? 'tally-pgm font-semibold' : (d.style === 'blue' ? 'key-blue font-semibold' : 'key-amber font-semibold')) : '';
+        const lcdCls = on ? (d.style === 'red' ? 'bg-red-500 text-white font-bold' : (d.style === 'blue' ? 'bg-blue-500 text-white font-bold' : 'bg-amber-400 text-slate-950 font-bold')) : 'bg-slate-800 text-slate-300';
+        return { l1: d.l1, l2: d.l2, short: d.short, name: d.l1 + ' ' + d.l2, active: on, cls, lcdCls, hover: 'hover:border-amber-400' };
+      }
+      if (key >= 48 && key <= 59) {
+        const u = userPages[state.page % 2 === 0 ? 2 : 1][key];
+        const on = state.userActive.has(key);
+        return { l1: u.l1, l2: u.l2, short: u.short, name: u.l1 + ' ' + u.l2, active: on, cls: on ? 'key-purple font-semibold' : '', lcdCls: on ? 'bg-purple-500 text-white font-bold' : 'bg-slate-800 text-slate-300', hover: 'hover:border-purple-400' };
+      }
+      if (key >= 60 && key <= 71) {
+        const tr = transItems[key];
+        const isStyle = ['mix', 'wipe', 'dip', 'sting'].includes(tr.id) && state.transStyle === tr.id;
+        const isNext = ['dve', 'bkgd', 'key3', 'dsk3'].includes(tr.id) && state.nextTransActive.has(tr.id);
+        const isRed = (tr.id === 'ftb' && state.ftb) || (tr.id === 'lock' && state.locked);
+        const isAmber = (tr.id === 'prev' && state.prevTrans) || (tr.id === 'norm' && state.normMode) || isNext;
+        const on = isStyle || isRed || isAmber;
+        let cls = '';
+        let lcdCls = 'bg-slate-800 text-slate-300';
+        if (isRed) { cls = 'tally-pgm font-semibold'; lcdCls = 'bg-red-500 text-white font-bold'; }
+        else if (isStyle) { cls = 'key-blue font-semibold'; lcdCls = 'bg-blue-500 text-white font-bold'; }
+        else if (isAmber) { cls = 'key-amber font-semibold'; lcdCls = 'bg-amber-400 text-slate-950 font-bold'; }
+        return { l1: tr.l1, l2: tr.l2, short: tr.short, name: tr.short, active: on, cls, lcdCls, hover: 'hover:border-blue-400' };
+      }
+      if (key >= 72 && key <= 77) {
+        const rp = replayItems[key];
+        const on = state.replayActive.has(key);
+        return { l1: rp.l1, l2: rp.l2, short: rp.short, name: rp.short, active: on, cls: on ? 'key-amber font-semibold' : '', lcdCls: on ? 'bg-amber-400 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300', hover: 'hover:border-cyan-400' };
+      }
+      return { l1: 'KEY', l2: String(key), short: 'K' + key, name: 'K' + key, active: false, cls: '', lcdCls: 'bg-slate-800', hover: '' };
+    }
+
+    function keyTraceClasses(key, isActive) {
+      const m = chipMeta(key);
+      const rc = matrixMeta(key);
+      const tf = state.traceFilter;
+
+      if (tf === 'clean' || tf === 'lcd15') {
+        return { dim: tf === 'lcd15' ? 'opacity-65' : '', ring: '', subLabel: null, chipColor: '' };
+      }
+      if (tf === 'matrix') {
+        const sameRow = rc.row === state.activeRow;
+        const sameCol = rc.col === state.activeCol;
+        const label = `R${rc.row}+C${rc.col}`;
+        if (sameRow && sameCol) return { dim: 'opacity-100', ring: 'mat-cross font-bold', subLabel: label, chipColor: isActive ? '' : 'text-amber-500 font-bold' };
+        if (sameRow) return { dim: 'opacity-100', ring: 'mat-row font-semibold', subLabel: label, chipColor: isActive ? '' : 'text-emerald-500 font-semibold' };
+        if (sameCol) return { dim: 'opacity-100', ring: 'mat-col font-semibold', subLabel: label, chipColor: isActive ? '' : 'text-sky-500 font-semibold' };
+        return { dim: 'opacity-25', ring: '', subLabel: label, chipColor: 'text-[var(--muted-foreground)]' };
+      }
+      if (tf === 'led48') {
+        return { dim: 'opacity-100', ring: isActive ? '' : 'border-cyan-500/75', subLabel: 'L#' + key, chipColor: isActive ? '' : 'text-cyan-500' };
+      }
+      if (tf === 'dual') {
+        return { dim: 'opacity-100', ring: isActive ? '' : m.border, subLabel: `${m.chipId}${m.pinLetter}#${key}`, chipColor: isActive ? '' : m.txt };
+      }
+      const match = tf === m.chipId;
+      return {
+        dim: match ? 'opacity-100' : 'opacity-25',
+        ring: match ? 'trace-hit border-amber-400 font-semibold' : '',
+        subLabel: `${m.chipId}·${m.pinLetter}`,
+        chipColor: match ? (isActive ? '' : 'text-amber-500 font-semibold') : 'text-[var(--muted-foreground)]'
+      };
+    }
+
+    function traceOverlay(t) {
+      return (state.traceFilter === 'matrix' || t.ring.includes('trace-hit')) ? t.ring : '';
+    }
+
+    function keyTooltip(key, name) {
+      const m = chipMeta(key);
+      const rc = matrixMeta(key);
+      return `${name} (KEY ${key}) | 讀鍵: GPIO 42 (${m.chipId}·${m.pinLetter} Pin${m.icPin}) | 燈珠: GPIO 48 (LED#${key}) | R${rc.row}+C${rc.col}`;
+    }
+
+    function selectKeyForTrace(key, baseCmd) {
+      state.activeLcd = null;
+      const rc = matrixMeta(key);
+      const m = chipMeta(key);
+      state.activeRow = rc.row;
+      state.activeCol = rc.col;
+      if (state.traceFilter === 'matrix') {
+        setExplain(`📐 矩陣交會：R${rc.row} ∩ C${rc.col} ＝ KEY ${key} ｜ GPIO 42(${m.chipId}·${m.pinLetter}) + GPIO 48(LED#${key})`, baseCmd);
+      } else {
+        setExplain(`⚡ KEY ${key} 雙腳位：① 讀鍵 GPIO 42 (${m.chipId}·${m.pinLetter} Pin${m.icPin}) ＋ ② 燈帶 GPIO 48 (LED#${key})`, baseCmd);
+      }
+    }
+
+    function handleKeyClick(key) {
+      if (state.locked && key !== 70) { logLocked(); return; }
+      selectKeyForTrace(key, `KEY-PRESS KEY=${key}`);
+      if (key >= 0 && key <= 17) {
+        state.pvw = key;
+      } else if (key >= 18 && key <= 35) {
+        state.pgm = key - 18;
+        state.ftb = false;
+      } else if (key >= 36 && key <= 47) {
+        if (state.dskActive.has(key)) state.dskActive.delete(key);
+        else state.dskActive.add(key);
+      } else if (key >= 48 && key <= 59) {
+        if (state.userActive.has(key)) state.userActive.delete(key);
+        else state.userActive.add(key);
+      } else if (key >= 60 && key <= 71) {
+        const id = transItems[key].id;
+        if (['mix', 'wipe', 'dip', 'sting'].includes(id)) state.transStyle = id;
+        else if (['dve', 'bkgd', 'key3', 'dsk3'].includes(id)) {
+          if (state.nextTransActive.has(id)) state.nextTransActive.delete(id);
+          else state.nextTransActive.add(id);
+        }
+        else if (id === 'ftb') state.ftb = !state.ftb;
+        else if (id === 'prev') state.prevTrans = !state.prevTrans;
+        else if (id === 'norm') state.normMode = !state.normMode;
+        else if (id === 'lock') {
+          state.locked = !state.locked;
+          document.getElementById('tbar-range').disabled = state.locked;
+        }
+      } else if (key >= 72 && key <= 77) {
+        const id = replayItems[key].id;
+        if (id === 'pg_prev') state.page = state.page === 1 ? 8 : state.page - 1;
+        else if (id === 'pg_next') state.page = (state.page % 8) + 1;
+        else {
+          if (state.replayActive.has(key)) state.replayActive.delete(key);
+          else state.replayActive.add(key);
+        }
+      }
+      renderAll();
+    }
+
+    function swapPgmPvw() {
+      const tmp = state.pgm;
+      state.pgm = state.pvw;
+      state.pvw = tmp;
+      state.ftb = false;
+      renderAll();
+    }
+
+    function triggerAutoTransition() {
+      if (state.autoAnimating) return;
+      state.autoAnimating = true;
+      const slider = document.getElementById('tbar-range');
+      const start = state.tbarFromTop ? 100 : 0;
+      const end = state.tbarFromTop ? 0 : 100;
+      let step = 0;
+      const timer = setInterval(() => {
+        step += 10;
+        const val = start + ((end - start) * step) / 100;
+        state.tbarPct = Math.round(val);
+        slider.value = val;
+        document.getElementById('tbar-pct').textContent = state.tbarPct + '%';
+        document.getElementById('top-tbar-pct').textContent = state.tbarPct + '%';
+        renderTopEncoderLcdBars();
+        if (step >= 100) {
+          clearInterval(timer);
+          state.tbarFromTop = !state.tbarFromTop;
+          swapPgmPvw();
+          state.autoAnimating = false;
+        }
+      }, 28);
+    }
+
+    // ==================== 2. RENDER MODULAR 2x3 KEY-SCREEN PODS (#1-#13) ====================
+    function renderPods() {
+      const tiers = {
+        'tier-top': document.getElementById('tier-top'),
+        'tier-pgm': document.getElementById('tier-pgm'),
+        'tier-pvw': document.getElementById('tier-pvw'),
+        'tier-right-pods': document.getElementById('tier-right-pods')
+      };
+      Object.values(tiers).forEach(el => { el.innerHTML = ''; });
+      const isLcdFocus = state.traceFilter === 'lcd15';
+
+      keyPods.forEach(pod => {
+        const hit = isLcdFocus || state.activeLcd === pod.id;
+        const podCard = document.createElement('div');
+        podCard.className = 'bg-[var(--card)] border border-[var(--border)] rounded-lg p-1 flex flex-col gap-0.5';
+
+        // Dedicated 2.25" ST7789P Screen (2x3 6-cell live grid directly above its 6 keys)
+        const lcdBtn = document.createElement('button');
+        lcdBtn.type = 'button';
+        lcdBtn.id = `lcd-${pod.id}`;
+        lcdBtn.className = `lcd-bar w-full rounded px-1 py-0.5 text-left cursor-pointer transition-all ${hit ? 'lcd-hit' : ''}`;
+        lcdBtn.innerHTML = `
+          <div class="flex items-center justify-between text-xs font-mono leading-none mb-0.5">
+            <span class="text-cyan-400 font-bold truncate">LCD${pod.id}·${pod.title}</span>
+            <span class="text-amber-400 shrink-0">${pod.cs}</span>
+          </div>
+          <div class="grid grid-cols-3 gap-0.5 text-xs font-mono leading-tight">
+            ${pod.keys.map(k => {
+              const info = getKeyDisplay(k);
+              return `<div class="rounded px-0.5 text-center truncate ${info.lcdCls}">${info.short}</div>`;
+            }).join('')}
+          </div>
+        `;
+        lcdBtn.onclick = () => {
+          state.activeLcd = pod.id;
+          const m = lcdMeta[pod.id];
+          setExplain(`🖥️ LCD #${pod.id} (${pod.title} · ${m.range})：並聯 SPI2 (G11/12/DC=G47) + CS${pod.id}=${m.cs} + 共用RES=GPB7`, `LCD-${pod.id} SELECT ${m.cs}`);
+          renderAll();
+        };
+        podCard.appendChild(lcdBtn);
+
+        // Matching 2x3 Mechanical Key Matrix directly underneath
+        const keyGrid = document.createElement('div');
+        keyGrid.className = 'grid grid-cols-3 gap-0.5';
+        pod.keys.forEach(k => {
+          const info = getKeyDisplay(k);
+          const t = keyTraceClasses(k, info.active);
+          const ov = traceOverlay(t);
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.title = keyTooltip(k, info.name);
+          btn.className = `h-[26px] rounded border text-xs leading-none flex flex-col items-center justify-center gap-0 px-0.5 cursor-pointer transition-all overflow-hidden ${t.dim} ${
+            info.active ? `${info.cls} ${ov}` : `bg-[var(--background)] border-[var(--border)] text-[var(--foreground)] ${info.hover} ${t.ring}`
+          }`;
+          btn.innerHTML = t.subLabel
+            ? `<span>${info.short}</span><span class="font-sans tracking-tighter ${t.chipColor}">${t.subLabel}</span>`
+            : `<span>${info.l1}</span><span>${info.l2}</span>`;
+          btn.onclick = () => handleKeyClick(k);
+          keyGrid.appendChild(btn);
+        });
+        podCard.appendChild(keyGrid);
+        tiers[pod.tier].appendChild(podCard);
+      });
+    }
+
+    function renderDirectCutKeys() {
+      const wrap = document.getElementById('direct-cut-matrix');
+      wrap.innerHTML = '';
+      directCutItems.forEach(item => {
+        const t = keyTraceClasses(item.key, false);
+        const ov = traceOverlay(t);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.title = keyTooltip(item.key, item.l1 + ' ' + item.l2);
+        const baseStyle = item.id === 'cut'
+          ? `bg-red-500/15 border-red-500/60 text-red-500 font-semibold hover:bg-red-500/25 ${ov}`
+          : `bg-emerald-500/15 border-emerald-500/60 text-emerald-500 font-semibold hover:bg-emerald-500/25 ${ov}`;
+        btn.className = `h-[28px] rounded border text-xs leading-none flex flex-col items-center justify-center gap-0 px-0.5 cursor-pointer transition-all overflow-hidden ${t.dim} ${baseStyle}`;
+        btn.innerHTML = t.subLabel
+          ? `<span>${item.short}</span><span class="font-sans tracking-tighter ${t.chipColor}">${t.subLabel}</span>`
+          : `<span>${item.l1}</span><span>${item.l2}</span>`;
+        btn.onclick = () => {
+          if (state.locked) { logLocked(); return; }
+          selectKeyForTrace(item.key, `KEY-PRESS KEY=${item.key}`);
+          if (item.id === 'cut') swapPgmPvw();
+          else triggerAutoTransition();
+        };
+        wrap.appendChild(btn);
+      });
+    }
+
+    // ==================== 3. RENDER TOP ENCODER POD SCREENS (LCD #14 & LCD #15) ====================
+    function renderTopEncoderLcdBars() {
+      const isLcdFocus = state.traceFilter === 'lcd15';
+
+      // LCD #14 (GPB5): 2x3 Encoder Pod A (E1-E6, K80-85)
+      const lcd14 = document.getElementById('lcd-14');
+      lcd14.className = `lcd-bar w-full rounded px-1 py-0.5 text-left cursor-pointer transition-all ${isLcdFocus || state.activeLcd === 14 ? 'lcd-hit' : ''}`;
+      lcd14.innerHTML = `
+        <div class="flex items-center justify-between text-xs font-mono leading-none mb-0.5">
+          <span class="text-cyan-400 font-bold">LCD14 · 旋鈕A組 (E1–E6)</span>
+          <span class="text-amber-400">CS14=GPB5</span>
+        </div>
+        <div class="grid grid-cols-3 gap-0.5 text-xs font-mono leading-tight">
+          ${encoders.slice(0, 6).map(e => `
+            <div class="bg-slate-900 border border-slate-700 rounded px-1 flex items-center justify-between gap-0.5">
+              <span class="text-slate-300 truncate">${e.short}</span>
+              <span class="text-cyan-400 font-bold shrink-0">${e.val}${e.unit}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      lcd14.onclick = () => {
+        state.activeLcd = 14;
+        setExplain('🖥️ LCD #14 (EC11 2×3 A組 · K80–85)：並聯 SPI2 (G11/12/DC=G47) + CS14=MCP.GPB5 + 共用RES=GPB7', 'LCD-14 SELECT MCP.GPB5');
+        renderAll();
+      };
+
+      // LCD #15 (GPB6): 2x3 Encoder Pod B + T-Bar/Jog (E7-E10 + T-Bar % + Jog TC)
+      const lcd15 = document.getElementById('lcd-15');
+      lcd15.className = `lcd-bar w-full rounded px-1 py-0.5 text-left cursor-pointer transition-all ${isLcdFocus || state.activeLcd === 15 ? 'lcd-hit' : ''}`;
+      lcd15.innerHTML = `
+        <div class="flex items-center justify-between text-xs font-mono leading-none mb-0.5">
+          <span class="text-cyan-400 font-bold">LCD15 · 旋鈕B組 + T-Bar/Jog</span>
+          <span class="text-amber-400">CS15=GPB6</span>
+        </div>
+        <div class="grid grid-cols-3 gap-0.5 text-xs font-mono leading-tight">
+          <div class="bg-slate-900 border border-slate-700 rounded px-1 flex items-center justify-between gap-0.5">
+            <span class="text-slate-300 truncate">${encoders[6].short}</span>
+            <span class="text-cyan-400 font-bold shrink-0">${encoders[6].val}${encoders[6].unit}</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-700 rounded px-1 flex items-center justify-between gap-0.5">
+            <span class="text-slate-300 truncate">${encoders[7].short}</span>
+            <span class="text-cyan-400 font-bold shrink-0">${encoders[7].val}${encoders[7].unit}</span>
+          </div>
+          <div class="bg-slate-900 border border-amber-500/50 rounded px-1 flex items-center justify-between gap-0.5">
+            <span class="text-amber-300 truncate">TB</span>
+            <span class="text-amber-400 font-bold shrink-0">${state.tbarPct}%</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-700 rounded px-1 flex items-center justify-between gap-0.5">
+            <span class="text-slate-300 truncate">${encoders[8].short}</span>
+            <span class="text-cyan-400 font-bold shrink-0">${encoders[8].val}${encoders[8].unit}</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-700 rounded px-1 flex items-center justify-between gap-0.5">
+            <span class="text-slate-300 truncate">${encoders[9].short}</span>
+            <span class="text-cyan-400 font-bold shrink-0">${encoders[9].val}${encoders[9].unit}</span>
+          </div>
+          <div class="bg-slate-900 border border-purple-500/50 rounded px-1 flex items-center justify-between gap-0.5">
+            <span class="text-purple-300 truncate">JOG</span>
+            <span class="text-emerald-400 font-bold shrink-0">${state.jogFrame >= 0 ? '+' : ''}${state.jogFrame}F</span>
+          </div>
+        </div>
+      `;
+      lcd15.onclick = () => {
+        state.activeLcd = 15;
+        setExplain('🖥️ LCD #15 (EC11 2×3 B組+T-Bar/Jog · K86–90)：並聯 SPI2 (G11/12/DC=G47) + CS15=MCP.GPB6 + 共用RES=GPB7', 'LCD-15 SELECT MCP.GPB6');
+        renderAll();
+      };
+    }
+
+    function renderEncoderCard(enc, i) {
+      const tf = state.traceFilter;
+      const isChipFilter = tf === 'U11' || tf === 'U12' || tf === 'U13';
+      const hitEnc = (tf === 'U11' && enc.swChip === 'U11') ||
+        (tf === 'U12' && (enc.abChip === 'U12' || enc.swChip === 'U12')) ||
+        (tf === 'U13' && enc.abChip === 'U13');
+      const dimEnc = (tf !== 'dual' && tf !== 'clean' && !isChipFilter) || (isChipFilter && !hitEnc);
+      const card = document.createElement('div');
+      card.title = `${enc.name} (KEY ${enc.key}) | 旋轉: ${enc.gpios} | 按壓: GPIO 42 (${enc.uPin})`;
+      card.className = `bg-[var(--card)] border rounded px-1 py-0.5 flex flex-col items-center justify-between gap-0 transition-all ${
+        dimEnc ? 'opacity-25 border-[var(--border)]' : (hitEnc ? 'trace-hit border-cyan-400' : 'border-cyan-500/50')
+      }`;
+      card.innerHTML = `
+        <div class="text-xs font-medium leading-none truncate w-full text-center cursor-pointer enc-push" data-idx="${i}">${enc.name}</div>
+        <div class="flex items-center justify-between w-full gap-0.5 leading-none my-0.5">
+          <button type="button" data-idx="${i}" data-dir="-1" class="enc-btn text-xs px-1 py-0 rounded border border-[var(--border)] bg-[var(--background)] hover:border-[var(--primary)] cursor-pointer">-</button>
+          <span class="text-xs font-mono font-semibold text-[var(--primary)] truncate">${enc.val}${enc.unit}</span>
+          <button type="button" data-idx="${i}" data-dir="1" class="enc-btn text-xs px-1 py-0 rounded border border-[var(--border)] bg-[var(--background)] hover:border-[var(--primary)] cursor-pointer">+</button>
+        </div>
+        <div class="text-xs font-mono leading-none text-center w-full truncate"><span class="text-cyan-500 font-semibold">${enc.shortGpios}</span> <span class="text-[var(--muted-foreground)]">${enc.uPin}</span></div>
+      `;
+      return card;
+    }
+
+    function renderEncoders() {
+      const podA = document.getElementById('encoders-pod-a');
+      const podB = document.getElementById('encoders-pod-b');
+      podA.innerHTML = '';
+      podB.innerHTML = '';
+
+      encoders.slice(0, 6).forEach((enc, i) => podA.appendChild(renderEncoderCard(enc, i)));
+      encoders.slice(6, 10).forEach((enc, i) => podB.appendChild(renderEncoderCard(enc, 6 + i)));
+
+      document.querySelectorAll('.enc-push').forEach(lbl => {
+        lbl.onclick = () => {
+          const enc = encoders[Number(lbl.dataset.idx)];
+          const targetLcd = enc.key <= 85 ? 'LCD #14' : 'LCD #15';
+          setExplain(`🔘 旋鈕下壓 ${enc.name} (KEY ${enc.key})：S2 腳進 ${enc.uPin} (GPIO 42 讀鍵) ＋ 同步刷新 ${targetLcd}`, `KEY-PRESS KEY=${enc.key}`);
+        };
+      });
+
+      document.querySelectorAll('.enc-btn').forEach(btn => {
+        btn.onclick = () => {
+          const idx = Number(btn.dataset.idx);
+          const dir = Number(btn.dataset.dir);
+          const enc = encoders[idx];
+          enc.val = Math.max(enc.min, Math.min(enc.max, enc.val + dir * enc.step));
+          const targetLcd = enc.key <= 85 ? 'LCD #14' : 'LCD #15';
+          setExplain(`🎛️ ${enc.name} (KEY ${enc.key})：旋轉 ${enc.gpios} ＋ 按壓 ${enc.uPin} ＋ 同步刷新 ${targetLcd}`, `KEY-ROTATE KEY=${enc.key} VALUE=${enc.val}${enc.unit}`);
+          renderEncoders();
+          renderTopEncoderLcdBars();
+        };
+      });
+    }
+
+    function renderLcdSummaryStrip() {
+      const strip = document.getElementById('lcd-summary-strip');
+      strip.innerHTML = Object.entries(lcdMeta).map(([id, m]) => {
+        const hit = state.traceFilter === 'lcd15' || state.activeLcd === Number(id);
+        return `
+          <div class="rounded border px-1 py-0.5 leading-tight truncate ${hit ? 'border-amber-500 bg-amber-500/10' : 'border-[var(--border)] bg-[var(--card)]'}">
+            <div class="font-bold text-cyan-500 truncate">#${id} ${m.short}</div>
+            <div class="text-[var(--muted-foreground)] truncate">${m.cs.replace('MCP.', '').split(' ')[0]} · ${m.range}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTraceBar() {
+      const bar = document.getElementById('trace-bar');
+      bar.innerHTML = '<span class="text-xs font-semibold mr-0.5">🔌 檢視模式：</span>';
+      traceFilters.forEach(f => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const active = state.traceFilter === f.id;
+        let activeCls = 'bg-[var(--primary)] text-[var(--primary-foreground)] border-transparent font-semibold';
+        if (active && f.id === 'lcd15') activeCls = 'bg-cyan-500 text-slate-950 border-cyan-600 font-semibold';
+        else if (active && f.id === 'matrix') activeCls = 'bg-amber-500 text-slate-950 border-amber-600 font-semibold';
+        else if (active && f.id === 'led48') activeCls = 'bg-cyan-500 text-slate-950 border-cyan-600 font-semibold';
+        else if (active && f.id.startsWith('U')) activeCls = 'bg-emerald-500 text-slate-950 border-emerald-600 font-semibold';
+        btn.className = `text-xs px-1.5 py-0.5 rounded border cursor-pointer transition-all ${
+          active ? activeCls : 'bg-[var(--card)] border-[var(--border)] text-[var(--foreground)] hover:border-emerald-400'
+        }`;
+        btn.textContent = f.label;
+        btn.onclick = () => {
+          state.traceFilter = f.id;
+          state.activeLcd = null;
+          let msg = '';
+          if (f.id === 'dual') {
+            msg = '🎯 80鍵 (13×[2×3]+2) + 10旋鈕：① 13×74HC165 (U1–13 ➔ G42) ＋ ② 燈帶 G48 (#0–79) ＋ ③ 15×2.25" 彩屏 (MCP CS1–15)';
+          } else if (f.id === 'lcd15') {
+            msg = '🖥️ 15×2.25" ST7789P：並聯 SPI2 (MOSI=G11, SCLK=G12, DC=G47)，MCP23017 GPA0–7 + GPB0–6 分別接 CS1–15，GPB7 共用 RES！';
+          } else if (f.id === 'matrix') {
+            msg = `📐 矩陣雙線：已高亮 R${state.activeRow} ∩ C${state.activeCol} 雙線交會點`;
+          } else if (f.id === 'led48') {
+            msg = '💡 GPIO 48 燈鏈：G48 ➔ 330Ω ➔ LED #0 (PVW CAM1) ➔ #35 (PGM中段補電) ➔ #79 (AUTO 尾端補電) 共 80 顆 RGB';
+          } else if (f.id === 'clean') {
+            msg = '🎬 純導播視角：隱藏腳位疊字；每個 2×3 鍵區上方均配備一塊專屬 2.25" 長條彩屏 (LCD #1–#15)';
+          } else if (chipStyles[f.id]) {
+            msg = chipStyles[f.id].desc;
+          }
+          setExplain(msg, `VIEW-MODE=${f.id.toUpperCase()}`);
+          renderAll();
+        };
+        bar.appendChild(btn);
+      });
+
+      const dimSide = state.traceFilter !== 'dual' && state.traceFilter !== 'clean';
+      document.getElementById('tbar-card').classList.toggle('opacity-35', dimSide);
+      document.getElementById('jog-card').classList.toggle('opacity-35', dimSide);
+    }
+
+    function renderMode() {
+      document.getElementById('oled-ip').textContent = modes[state.mode].ip;
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        const active = btn.dataset.mode === state.mode;
+        btn.className = active
+          ? 'mode-btn text-xs px-1.5 py-0 rounded border border-emerald-500 bg-emerald-500/15 text-emerald-500 font-semibold cursor-pointer'
+          : 'mode-btn text-xs px-1.5 py-0 rounded border border-[var(--border)] text-[var(--muted-foreground)] font-medium cursor-pointer';
+      });
+    }
+
+    function renderOLED() {
+      document.getElementById('oled-pgm').textContent = state.ftb ? 'FTB' : busSources[state.pgm].name;
+      document.getElementById('oled-pvw').textContent = busSources[state.pvw].name;
+      document.getElementById('oled-page').textContent = state.locked ? 'LOCKED' : ('PAGE ' + state.page);
+    }
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.onclick = () => {
+        state.mode = btn.dataset.mode;
+        renderMode();
+        setExplain(`🌐 切換傳輸介面至 ${state.mode.toUpperCase()} (${modes[state.mode].ip})`, `SWITCH-TRANSPORT MODE=${state.mode.toUpperCase()}`);
+      };
+    });
+
+    document.getElementById('tbar-range').addEventListener('input', (e) => {
+      if (state.locked) return;
+      const val = Number(e.target.value);
+      state.tbarPct = val;
+      document.getElementById('tbar-pct').textContent = val + '%';
+      document.getElementById('top-tbar-pct').textContent = val + '%';
+      setExplain(`🎚️ T-Bar (B10K)：類比輸入 GPIO 1 (行程 ${val}%) ＋ 同步更新 LCD #15 進度`, `SET-VARIABLE-VALUE VARIABLE=tbar VALUE=${btoa(String(val))}`);
+      renderTopEncoderLcdBars();
+      if (!state.tbarFromTop && val === 100) { state.tbarFromTop = true; swapPgmPvw(); }
+      else if (state.tbarFromTop && val === 0) { state.tbarFromTop = false; swapPgmPvw(); }
+    });
+
+    function rotateJog(dir) {
+      if (state.locked) { logLocked(); return; }
+      state.jogFrame += dir;
+      state.jogAngle += dir * 24;
+      document.getElementById('jog-frame').textContent = state.jogFrame;
+      document.getElementById('top-jog-frame').textContent = state.jogFrame + 'F';
+      document.getElementById('jog-needle').style.transform = `rotate(${state.jogAngle}deg)`;
+      setExplain(`🎛️ Jog 手輪 (KEY 90)：A相=GPIO 4 ＋ B相=GPIO 5 ＋ 同步更新 LCD #15 影格`, `KEY-ROTATE KEY=90 DIRECTION=${dir}`);
+      renderTopEncoderLcdBars();
+    }
+
+    document.getElementById('jog-left').onclick = () => rotateJog(-1);
+    document.getElementById('jog-right').onclick = () => rotateJog(1);
+
+    function renderAll() {
+      renderTraceBar();
+      renderMode();
+      renderOLED();
+      renderPods();
+      renderDirectCutKeys();
+      renderTopEncoderLcdBars();
+      renderEncoders();
+      renderLcdSummaryStrip();
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
