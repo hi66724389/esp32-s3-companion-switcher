@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ESP32-P4 32×32 多WDM切分 + ESP32 VBAN 路由混音器 · 系統邏輯架構表</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f1f5f9; color: #0f172a; font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; }
+  header { position: sticky; top: 0; z-index: 20; background: #0f172a; color: #f8fafc; padding: 12px 20px; border-bottom: 2px solid #38bdf8; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 16px; margin: 0; color: #38bdf8; }
+  .btn { padding: 6px 14px; border-radius: 6px; border: none; background: #22c55e; color: #052e16; cursor: pointer; font-size: 12.5px; font-weight: 700; }
+  .wrap { max-width: 1360px; margin: 18px auto; padding: 0 16px; }
+  .card { background: #fff; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; box-shadow: 0 2px 10px rgba(15,23,42,.06); }
+  .card h2 { margin: 0 0 10px; font-size: 16px; color: #0f172a; border-left: 5px solid #0284c7; padding-left: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th, td { border: 1px solid #94a3b8; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #e2e8f0; font-weight: 700; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .b-b { background: #dbeafe; color: #1e40af; }
+  .b-g { background: #dcfce7; color: #166534; }
+  .b-p { background: #f3e8ff; color: #6b21a8; }
+  .b-o { background: #ffedd5; color: #9a3412; }
+  svg { width: 100%; height: auto; display: block; background: #fafafa; border: 1px solid #cbd5e1; border-radius: 8px; }
+  @media print {
+    header { display: none !important; }
+    body { background: #fff; }
+    .card { break-inside: avoid; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>ESP32-P4 32×32 錄音介面（多 WDM 切分）＋ ESP32 VBAN 路由混音器 · 系統邏輯架構表</h1>
+    <div style="font-size:12px;color:#94a3b8">架構總覽：一體化 32I/32O 錄音介面主機 (類比前端 + ESP32-P4 同板整合) ➔ Windows .sys 多WDM + ASIO ➔ 獨立 ESP32 VBAN 路由混音器</div>
+  </div>
+  <button class="btn" onclick="window.print()">🖨️ 列印 / 存成 PDF</button>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2>1. 系統邏輯與資料流架構圖</h2>
+    <svg viewBox="0 0 1320 560" xmlns="http://www.w3.org/2000/svg">
+      <!-- 1. 一體化 32I/32O 錄音介面主機 (類比前端 + ESP32-P4 同板整合) -->
+      <rect x="20" y="20" width="540" height="250" rx="10" fill="#f8fafc" stroke="#0284c7" stroke-width="2.5"/>
+      <text x="36" y="45" font-size="14" font-weight="700" fill="#0f172a">一體化 32I/32O 錄音介面主機（類比前端 ＋ ESP32-P4 同板整合）</text>
+
+      <!-- 內部類比與轉換區塊 -->
+      <rect x="36" y="60" width="235" height="195" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+      <text x="48" y="82" font-size="12.5" font-weight="700" fill="#dc2626">類比前端與 ADC/DAC 轉換</text>
+      <text x="48" y="104" font-size="11.2" fill="#334155">• 8× TASCAM DB-25 (4進 + 4出)</text>
+      <text x="48" y="124" font-size="11.2" fill="#334155">• 32× PGA2500 (+48V 前級)</text>
+      <text x="48" y="144" font-size="11.2" fill="#334155">• 4× CS5368 (8ch ADC)</text>
+      <text x="48" y="164" font-size="11.2" fill="#334155">• 2× ADAU1966A (16ch DAC)</text>
+      <text x="48" y="184" font-size="11.2" fill="#334155">• 32× DRV134 平衡輸出</text>
+      <text x="48" y="212" font-size="10.8" font-weight="700" fill="#7c3aed">板內走線：I2S0 (Ch1–16) + I2S1 (Ch17–32)</text>
+      <text x="48" y="230" font-size="10.8" font-weight="700" fill="#0284c7">板內控制：SPI 控前級 / I2C 控 DAC</text>
+
+      <!-- 內部 ESP32-P4 核心 -->
+      <rect x="290" y="60" width="254" height="195" rx="8" fill="#f0f9ff" stroke="#0284c7" stroke-width="1.5"/>
+      <text x="302" y="82" font-size="12.5" font-weight="700" fill="#0284c7">ESP32-P4 主控核心</text>
+      <text x="302" y="104" font-size="11.2" fill="#334155">• 雙核 400MHz 彙整 32I / 32O</text>
+      <text x="302" y="124" font-size="11.2" fill="#334155">• USB 2.0 HS (480Mbps) UAC2</text>
+      <text x="302" y="144" font-size="11.2" fill="#334155">• USB HID (接收 GUI 控制指令)</text>
+      <text x="302" y="164" font-size="11.2" fill="#334155">• 100M RMII 網口 (VBAN / 預留 AES67)</text>
+      <text x="302" y="200" font-size="11" font-weight="700" fill="#0284c7">對外 USB：單一 32ch Isochronous 串流</text>
+      <text x="302" y="220" font-size="11" font-weight="700" fill="#0d9488">對外網口：同步收發 VBAN UDP 串流</text>
+
+      <!-- 3. Windows PC 驅動與應用層 -->
+      <rect x="640" y="20" width="320" height="260" rx="8" fill="#f0fdf4" stroke="#059669" stroke-width="2"/>
+      <text x="655" y="45" font-size="13" font-weight="700" fill="#059669">Windows PC 驅動層 (.sys + ASIO.dll)</text>
+      <rect x="658" y="60" width="284" height="75" rx="6" fill="#fff" stroke="#16a34a" stroke-width="1.5"/>
+      <text x="670" y="80" font-size="11.5" font-weight="700" fill="#166534">Kernel .sys 驅動 (WaveRT)</text>
+      <text x="670" y="98" font-size="11" fill="#334155">• 記憶體層拆分 16 組獨立立體聲 WDM</text>
+      <text x="670" y="114" font-size="11" fill="#334155">  (Ch 1-2, Ch 3-4 ... Ch 31-32)</text>
+      <text x="670" y="128" font-size="11" fill="#334155">• 供 OBS / Discord / Chrome 自由選取</text>
+
+      <rect x="658" y="145" width="284" height="58" rx="6" fill="#fff" stroke="#2563eb" stroke-width="1.5"/>
+      <text x="670" y="165" font-size="11.5" font-weight="700" fill="#1e40af">ASIO.dll (Steinberg IASIO)</text>
+      <text x="670" y="182" font-size="11" fill="#334155">• 共享記憶體直通 32ch Ring Buffer</text>
+      <text x="670" y="196" font-size="11" fill="#334155">• 供 Cubase / Reaper 低延遲全通道錄音</text>
+
+      <rect x="658" y="212" width="284" height="54" rx="6" fill="#fff" stroke="#d97706" stroke-width="1.5"/>
+      <text x="670" y="232" font-size="11.5" font-weight="700" fill="#b45309">控制 GUI (WPF / Qt / Electron)</text>
+      <text x="670" y="248" font-size="11" fill="#334155">• IOCTL 調 Buffer / USB HID 調 +48V 與增益</text>
+
+      <!-- 4. 獨立 ESP32 VBAN 路由混音器 -->
+      <rect x="310" y="330" width="380" height="200" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+      <text x="325" y="355" font-size="13" font-weight="700" fill="#ea580c">獨立 ESP32 / ESP32-P4：VBAN 路由與混音器 (Mixer)</text>
+      <text x="325" y="380" font-size="11.5" fill="#334155">• 接收區域網路內多台設備的 VBAN 串流</text>
+      <text x="325" y="400" font-size="11.5" fill="#334155">• 軟體 DSP 混音矩陣 (Matrix Mixer)、音量推桿、靜音/獨奏</text>
+      <text x="325" y="420" font-size="11.5" fill="#334155">• 路由轉發：把特定通道重新打包發送給指定監聽設備或 PC</text>
+      <text x="325" y="440" font-size="11.5" fill="#334155">• 內建 Web UI / 實體推桿面板控制</text>
+      <text x="325" y="470" font-size="11" font-weight="700" fill="#9a3412">★ 128軌擴充：建議經 Gigabit Switch 直進 PC 1G 網口</text>
+      <text x="325" y="488" font-size="10.5" fill="#b91c1c">（註：單顆 P4 100M RMII 無法承受雙向 128×128 24-bit 流量）</text>
+
+      <!-- 連線 -->
+      <path d="M 271 155 L 290 155" stroke="#7c3aed" stroke-width="2.5" fill="none"/>
+
+      <path d="M 560 120 L 640 120" stroke="#2563eb" stroke-width="2.5" fill="none"/>
+      <text x="565" y="112" font-size="10.5" font-weight="700" fill="#2563eb">USB 2.0 HS</text>
+
+      <path d="M 440 270 L 440 330" stroke="#0d9488" stroke-width="2.5" fill="none"/>
+      <text x="448" y="305" font-size="11" font-weight="700" fill="#0d9488">100M Ethernet (VBAN UDP 串流)</text>
+    </svg>
+  </div>
+
+  <div class="card">
+    <h2>2. 各層級邏輯分工與技術規格對照表</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:16%">系統層級</th>
+          <th style="width:22%">核心硬體 / 軟體模組</th>
+          <th style="width:24%">通訊協定與介面</th>
+          <th style="width:38%">邏輯職責說明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge b-o">類比 I/O 層</span></td>
+          <td><strong>一體化 32I/32O 機箱</strong><br>8× DB-25 / PGA2500 / CS5368 / ADAU1966A</td>
+          <td>平衡類比 (AES59 DB-25)<br>I2S0 + I2S1 (TDM16 @ 24.576MHz)</td>
+          <td>負責麥克風 +48V 前級放大、類比數位轉換 (ADC/DAC)，以及 ±15V 平衡線路輸出。</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-b">主控核心層</span></td>
+          <td><strong>ESP32-P4</strong></td>
+          <td>USB 2.0 HS (UAC2 + HID)<br>100M RMII Ethernet</td>
+          <td>彙整 32×32 TDM16 音訊流，透過單一 USB 32ch 端點與電腦通訊，並同步透過網口收發 VBAN 串流。</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-g">PC 驅動層</span></td>
+          <td><strong>Windows .sys (WaveRT)</strong><br>+ <strong>ASIO.dll</strong></td>
+          <td>USB Isochronous Transfer<br>IOCTL + 共享記憶體</td>
+          <td><strong>.sys</strong> 將 32ch 串流在記憶體中拆為 <strong>16 組獨立立體聲 WDM</strong>；<strong>ASIO.dll</strong> 直接讀取 32ch Ring Buffer 供 DAW 使用。</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-g">PC 控制層</span></td>
+          <td><strong>控制面板 GUI</strong><br>(WPF / Qt / Electron)</td>
+          <td>IOCTL (對驅動)<br>USB HID (對硬體)</td>
+          <td>調整 Buffer Size、取樣率、WDM 拆分開關，並透過 HID 即時控制機箱的 +48V 與 PGA2500 增益。</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-p">網路擴充層</span></td>
+          <td><strong>獨立 ESP32 VBAN Mixer / Router</strong></td>
+          <td>Ethernet UDP (VBAN)<br>WebSocket / Web UI</td>
+          <td>作為網路音訊中樞，接收多台設備的 VBAN 串流進行矩陣混音、音量調整與跨設備路由轉發。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>

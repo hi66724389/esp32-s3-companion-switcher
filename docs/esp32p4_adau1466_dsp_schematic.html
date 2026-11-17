@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ESP32-P4 + ADAU1466 SigmaDSP (32I/32O 數位調音台) · 針腳對針腳接線圖</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f1f5f9; color: #0f172a; font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; }
+  header { position: sticky; top: 0; z-index: 20; background: #0f172a; color: #f8fafc; padding: 12px 20px; border-bottom: 2px solid #a855f7; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 16px; margin: 0; color: #c084fc; }
+  .btn { padding: 6px 14px; border-radius: 6px; border: none; background: #22c55e; color: #052e16; cursor: pointer; font-size: 12.5px; font-weight: 700; }
+  .wrap { max-width: 1380px; margin: 18px auto; padding: 0 16px; }
+  .card { background: #fff; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; box-shadow: 0 2px 10px rgba(15,23,42,.06); }
+  .card h2 { margin: 0 0 10px; font-size: 16px; color: #0f172a; border-left: 5px solid #9333ea; padding-left: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+  th, td { border: 1px solid #94a3b8; padding: 7px 9px; text-align: left; vertical-align: middle; }
+  th { background: #e2e8f0; font-weight: 700; }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .b-p { background: #f3e8ff; color: #6b21a8; }
+  .b-b { background: #dbeafe; color: #1e40af; }
+  .b-g { background: #dcfce7; color: #166534; }
+  .b-r { background: #fee2e2; color: #991b1b; }
+  svg { width: 100%; height: auto; display: block; background: #fafafa; border: 1px solid #cbd5e1; border-radius: 8px; }
+  @media print {
+    header { display: none !important; }
+    body { background: #fff; }
+    .card { break-inside: avoid; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>ESP32-P4 ＋ ADAU1466 SigmaDSP (32進32出 專業調音台/錄音介面) · 詳細接線圖</h1>
+    <div style="font-size:12px;color:#94a3b8">設計亮點：ADAU1466 剛好擁有 4進 / 4出 Serial Port (TDM16)，完美對接「2×TDM16 類比 I/O」＋「2×TDM16 ESP32-P4 USB/VBAN」</div>
+  </div>
+  <button class="btn" onclick="window.print()">🖨️ 列印 / 存成 PDF</button>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2>1. Pin-to-Pin 完整接線圖（ADAU1466 作為 DSP 音訊核心 & 時脈總管）</h2>
+    <p style="font-size:13px;color:#475569;margin:0 0 10px">
+      ★ <strong>紫線 = TDM16 音訊流 (24.576MHz BCLK)</strong>、<strong>藍線 = SPI / I2C 控制線</strong>、<strong>橘線 = 24.576MHz 主時脈同步 (ADAU1466 當 Master)</strong>、<strong>青線 = USB 2.0 HS / 100M RMII</strong>。
+    </p>
+    <svg id="svg-dsp" viewBox="0 0 1360 660" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <div class="card">
+    <h2>2. ADAU1466 Serial Port（4進4出）完美分配對照表</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ADAU1466 埠號</th>
+          <th>訊號方向</th>
+          <th>格式 / 通道</th>
+          <th>對接晶片與腳位</th>
+          <th>用途說明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge b-r">SDATA_IN0</span></td>
+          <td>ADC ➔ DSP</td>
+          <td>TDM16 (Ch 1–16)</td>
+          <td><strong>CS5368 #1 + #2</strong> (SDOUT 菊花鏈)</td>
+          <td>前 16 路麥克風 / Line 輸入進 DSP 做 EQ / 壓縮 / 混音</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-r">SDATA_IN1</span></td>
+          <td>ADC ➔ DSP</td>
+          <td>TDM16 (Ch 17–32)</td>
+          <td><strong>CS5368 #3 + #4</strong> (SDOUT 菊花鏈)</td>
+          <td>後 16 路麥克風 / Line 輸入進 DSP 做 EQ / 壓縮 / 混音</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-b">SDATA_IN2</span></td>
+          <td>P4 ➔ DSP</td>
+          <td>TDM16 (Ch 1–16)</td>
+          <td><strong>ESP32-P4</strong> (I2S0_DOUT)</td>
+          <td>從電腦 USB / VBAN 進來的第 1–16 軌音訊，送入 DSP 混音</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-b">SDATA_IN3</span></td>
+          <td>P4 ➔ DSP</td>
+          <td>TDM16 (Ch 17–32)</td>
+          <td><strong>ESP32-P4</strong> (I2S1_DOUT)</td>
+          <td>從電腦 USB / VBAN 進來的第 17–32 軌音訊，送入 DSP 混音</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-g">SDATA_OUT0</span></td>
+          <td>DSP ➔ DAC</td>
+          <td>TDM16 (Ch 1–16)</td>
+          <td><strong>ADAU1966A #1</strong> (SDATA)</td>
+          <td>DSP 處理混音後的 Ch 1–16 送往類比平衡輸出 (DB-25 #1-#2)</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-g">SDATA_OUT1</span></td>
+          <td>DSP ➔ DAC</td>
+          <td>TDM16 (Ch 17–32)</td>
+          <td><strong>ADAU1966A #2</strong> (SDATA)</td>
+          <td>DSP 處理混音後的 Ch 17–32 送往類比平衡輸出 (DB-25 #3-#4)</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-p">SDATA_OUT2</span></td>
+          <td>DSP ➔ P4</td>
+          <td>TDM16 (Ch 1–16)</td>
+          <td><strong>ESP32-P4</strong> (I2S0_DIN)</td>
+          <td>經過前級/DSP 處理後的 Ch 1–16 送進電腦 DAW 錄音或 VBAN 廣播</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-p">SDATA_OUT3</span></td>
+          <td>DSP ➔ P4</td>
+          <td>TDM16 (Ch 17–32)</td>
+          <td><strong>ESP32-P4</strong> (I2S1_DIN)</td>
+          <td>經過前級/DSP 處理後的 Ch 17–32 送進電腦 DAW 錄音或 VBAN 廣播</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>3. 系統開機與控制流程（SigmaStudio ＋ ESP32-P4）</h2>
+    <table>
+      <tbody>
+        <tr><td style="width:18%"><strong>Step 1. 畫 DSP 圖</strong></td><td>在電腦打開免費的 <strong>ADI SigmaStudio</strong>，拖拉出 32×32 Matrix Mixer、Parametric EQ、Compressor、Limiter，編譯後匯出 <code>SigmaStudioFW</code> C 語言標頭檔。</td></tr>
+        <tr><td><strong>Step 2. 開機載入</strong></td><td>ESP32-P4 上電後，先透過 <strong>SPI (CS_DSP)</strong> 執行 ADAU1466 的 <code>default_download()</code>，將 DSP 程式與初始參數灌入 ADAU1466 RAM 並啟動運算。</td></tr>
+        <tr><td><strong>Step 3. 即時控制</strong></td><td>使用者透過觸控螢幕、Web UI 或 PC GUI 調整推桿 / EQ 時，ESP32-P4 只需透過 SPI 寫入對應的 <strong>4-byte 記憶體位址 (Safeload Write)</strong>，完全不佔用 P4 的 CPU 音訊算力。</td></tr>
+        <tr><td><strong>Step 4. 時脈同步</strong></td><td>由外部高精密 <code>12.288MHz</code>（或 <code>24.576MHz</code>）晶振接給 ADAU1466，<strong>ADAU1466 擔任全系統時脈 Master</strong>，統一輸出 MCLK / BCLK / LRCLK 給 ADC、DAC 與 ESP32-P4（I2S 設為 Slave），徹底避免不同步爆音。</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('svg-dsp');
+
+function box(x, y, w, h, title, col, bg, leftPins, rightPins) {
+  const g = document.createElementNS(NS, 'g');
+  const r = document.createElementNS(NS, 'rect');
+  r.setAttribute('x', x); r.setAttribute('y', y); r.setAttribute('width', w); r.setAttribute('height', h);
+  r.setAttribute('rx', 8); r.setAttribute('fill', bg || '#fff'); r.setAttribute('stroke', col); r.setAttribute('stroke-width', 2);
+  g.appendChild(r);
+  const t = document.createElementNS(NS, 'text');
+  t.setAttribute('x', x + w / 2); t.setAttribute('y', y + 22); t.setAttribute('font-size', 13);
+  t.setAttribute('font-weight', 700); t.setAttribute('fill', col); t.setAttribute('text-anchor', 'middle');
+  t.textContent = title; g.appendChild(t);
+
+  const pin = (px, py, txt, anc) => {
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', px); c.setAttribute('cy', py); c.setAttribute('r', 4); c.setAttribute('fill', col);
+    g.appendChild(c);
+    const el = document.createElementNS(NS, 'text');
+    el.setAttribute('x', px + (anc === 'start' ? 8 : -8)); el.setAttribute('y', py + 4);
+    el.setAttribute('font-size', 10.5); el.setAttribute('font-weight', 700); el.setAttribute('fill', '#1e293b');
+    el.setAttribute('text-anchor', anc); el.textContent = txt; g.appendChild(el);
+  };
+  leftPins.forEach(([py, label]) => pin(x, py, label, 'start'));
+  rightPins.forEach(([py, label]) => pin(x + w, py, label, 'end'));
+  svg.appendChild(g);
+}
+
+function wire(pts, col, label, lx, ly) {
+  const p = document.createElementNS(NS, 'path');
+  p.setAttribute('d', 'M' + pts.map(pt => pt.join(' ')).join(' L '));
+  p.setAttribute('stroke', col); p.setAttribute('stroke-width', 2.3); p.setAttribute('fill', 'none');
+  svg.appendChild(p);
+  if (label) {
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', lx); t.setAttribute('y', ly); t.setAttribute('font-size', 10.5);
+    t.setAttribute('font-weight', 700); t.setAttribute('fill', col); t.textContent = label;
+    svg.appendChild(t);
+  }
+}
+
+// 左側：ADC / DAC / 前級
+box(20, 30, 230, 170, '4× CS5368 ADC (32ch In)', '#dc2626', '#fef2f2',
+  [[70,'← 32× PGA2500 (DB-25)'],[105,'MCLK (24.576M)'],[140,'BCLK / LRCK (Slave)']],
+  [[75,'SDOUT1 (Ch1-16)'],[125,'SDOUT2 (Ch17-32)']]);
+
+box(20, 240, 230, 170, '2× ADAU1966A DAC (32ch Out)', '#059669', '#ecfdf5',
+  [[280,'→ 16× OPA1656 + DRV134'],[315,'I2C SDA/SCL (從 P4)'],[350,'MCLK / BCLK / LRCK']],
+  [[285,'SDATA1 (Ch1-16)'],[335,'SDATA2 (Ch17-32)']]);
+
+box(20, 450, 230, 130, '12.288 / 24.576MHz 晶振', '#d97706', '#fffbeb',
+  [], [[505,'低抖動主時脈 (MCLK)'],[540,'★ 全系統唯一時脈源']]);
+
+// 中央：ADAU1466 SigmaDSP
+box(380, 30, 330, 550, 'ADAU1466 SigmaDSP (音訊與時脈核心)', '#7c3aed', '#f5f3ff',
+  [[75,'SDATA_IN0 (ADC 1-16)'],[125,'SDATA_IN1 (ADC 17-32)'],
+   [285,'SDATA_OUT0 (DAC 1-16)'],[335,'SDATA_OUT1 (DAC 17-32)'],
+   [430,'CLKOUT (24.576M MCLK)'],[465,'BCLK_OUT / LRCLK_OUT'],
+   [505,'XTALIN / MCLKIN']],
+  [[95,'SDATA_OUT2 (To P4 1-16)'],[145,'SDATA_OUT3 (To P4 17-32)'],
+   [215,'SDATA_IN2 (From P4 1-16)'],[265,'SDATA_IN3 (From P4 17-32)'],
+   [365,'SCLK / MOSI / MISO'],[405,'SS_M (SPI Slave CS)'],
+   [470,'BCLK_OUT / LRCLK_OUT (給 P4)']]);
+
+// 右側：ESP32-P4 + 介面
+box(850, 30, 270, 500, 'ESP32-P4 (通訊 / USB / UI 主控)', '#0284c7', '#f0f9ff',
+  [[95,'I2S0_DIN (TDM16 Ch1-16)'],[145,'I2S1_DIN (TDM16 Ch17-32)'],
+   [215,'I2S0_DOUT (TDM16 Ch1-16)'],[265,'I2S1_DOUT (TDM16 Ch17-32)'],
+   [365,'SPI_SCK / MOSI / MISO'],[405,'GPIO_CS_DSP (灌韌體/調參數)'],
+   [440,'GPIO_CS_PGA (控32×前級)'],[470,'I2S0/1_BCLK & WS (Slave)']],
+  [[110,'USB 2.0 HS (480M)'],[160,'USB HID (控制GUI)'],
+   [240,'RMII Ethernet (100M)'],[330,'I2C SDA/SCL (控DAC)'],
+   [410,'MIPI-DSI / Touch (螢幕)']]);
+
+box(1180, 70, 160, 120, 'PC (USB-C)', '#2563eb', '#eff6ff', [[110,'UAC2 32I/32O'],[155,'HID 控制面板']], []);
+box(1180, 210, 160, 100, 'IP101GR + RJ45', '#0d9488', '#f0fdfa', [[240,'VBAN / AES67']], []);
+
+// 連線：ADC/DAC <-> ADAU1466
+wire([[250,75],[380,75]], '#7c3aed', 'TDM16 In 1-16', 265, 68);
+wire([[250,125],[380,125]], '#7c3aed', 'TDM16 In 17-32', 265, 118);
+wire([[380,285],[250,285]], '#059669', 'TDM16 Out 1-16', 265, 278);
+wire([[380,335],[250,335]], '#059669', 'TDM16 Out 17-32', 265, 328);
+
+// 連線：晶振 & 時脈分配
+wire([[250,505],[380,505]], '#d97706', 'Master XTAL', 270, 498);
+wire([[380,430],[310,430],[310,105],[250,105]], '#d97706', '', 0, 0);
+wire([[310,350],[250,350]], '#d97706', 'MCLK/BCLK/LRCLK', 258, 368);
+wire([[710,470],[850,470]], '#d97706', 'I2S Slave 時脈', 735, 463);
+
+// 連線：ADAU1466 <-> ESP32-P4
+wire([[710,95],[850,95]], '#7c3aed', 'DSP→P4 (Ch1-16)', 730, 88);
+wire([[710,145],[850,145]], '#7c3aed', 'DSP→P4 (Ch17-32)', 730, 138);
+wire([[850,215],[710,215]], '#7c3aed', 'P4→DSP (Ch1-16)', 730, 208);
+wire([[850,265],[710,265]], '#7c3aed', 'P4→DSP (Ch17-32)', 730, 258);
+
+// 連線：SPI 控制
+wire([[850,365],[710,365]], '#0284c7', 'SPI Bus (20MHz)', 735, 358);
+wire([[850,405],[710,405]], '#0284c7', 'CS_DSP', 755, 398);
+
+// 連線：PC & 網口
+wire([[1120,110],[1180,110]], '#2563eb', '', 0, 0);
+wire([[1120,160],[1180,160]], '#2563eb', '', 0, 0);
+wire([[1120,240],[1180,240]], '#0d9488', '', 0, 0);
+</script>
+</body>
+</html>

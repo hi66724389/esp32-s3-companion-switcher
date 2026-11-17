@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ESP32-P4 獨立 32進32出 (32I/32O) 專業錄音室級 VBAN / USB 2.0 ASIO 音效介面 · 工程方塊圖 & 電路接線圖</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f1f5f9; color: #0f172a; font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; }
+  header { position: sticky; top: 0; z-index: 20; background: #0f172a; color: #f8fafc; padding: 12px 20px; border-bottom: 2px solid #38bdf8; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+  header h1 { font-size: 16px; margin: 0; color: #38bdf8; }
+  .btn { padding: 6px 14px; border-radius: 6px; border: 1px solid #475569; background: #1e293b; color: #fff; cursor: pointer; font-size: 12.5px; font-weight: 700; }
+  .btn-g { background: #22c55e; color: #052e16; border-color: #22c55e; }
+  .wrap { max-width: 1380px; margin: 18px auto; padding: 0 16px; }
+  .card { background: #fff; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; box-shadow: 0 2px 10px rgba(15,23,42,.06); }
+  .card h2 { margin: 0 0 10px; font-size: 16px; color: #0f172a; border-left: 5px solid #0284c7; padding-left: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+  th, td { border: 1px solid #94a3b8; padding: 6px 8px; text-align: left; vertical-align: middle; }
+  th { background: #e2e8f0; font-weight: 700; }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .b-b { background: #dbeafe; color: #1e40af; }
+  .b-g { background: #dcfce7; color: #166534; }
+  .b-r { background: #fee2e2; color: #991b1b; }
+  .b-y { background: #fef9c3; color: #854d0e; }
+  svg { width: 100%; height: auto; display: block; background: #fafafa; border: 1px solid #cbd5e1; border-radius: 8px; }
+  @page { size: A4 landscape; margin: 7mm; }
+  @media print {
+    header { display: none !important; }
+    body { background: #fff; }
+    .wrap { margin: 0; padding: 0; max-width: 100%; }
+    .card { break-inside: avoid; box-shadow: none; border: 1.5px solid #0f172a; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>ESP32-P4 獨立 32進32出 (32I/32O) 專業錄音室級 VBAN / USB 2.0 ASIO 音效介面 · 工程設計與電路圖</h1>
+    <div style="font-size:12px;color:#94a3b8">架構：ESP32-P4 + IP101GR (RMII 100M) + USB 2.0 HS (480M) + 2×TDM16 (4×CS5368 8ch ADC + 2×ADAU1966A 16ch DAC) + 32×PGA2500 + 32×DRV134</div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-g" onclick="window.print()">🖨️ 列印 / 存成 A4 橫式 PDF</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 1. 好懂的工程系統方塊圖 -->
+  <div class="card">
+    <h2>1. 易懂工程系統方塊圖（訊號流向與電源隔離架構）</h2>
+    <p style="font-size:13px;color:#475569;margin:0 0 10px">
+      這張圖把整台設備拆成 <strong>「類比前端區 (±15V 供電)」</strong>、<strong>「數位轉換區 (CS42448 TDM)」</strong> 與 <strong>「ESP32-P4 高速處理與網路/USB 區 (3.3V 供電)」</strong>，方便你規劃 PCB 分區佈局。
+    </p>
+    <svg id="svg-block" viewBox="0 0 1300 520" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <!-- 2. 真實針腳對針腳 SVG 詳細接線圖 -->
+  <div class="card">
+    <h2>2. 針腳對針腳 (Pin-to-Pin) 詳細電路接線圖（XLR +48V 前級 ➔ CS5368 ➔ ESP32-P4 ➔ ADAU1966A ➔ 6.35mm 平衡輸出 + RMII 網口）</h2>
+    <p style="font-size:13px;color:#475569;margin:0 0 10px">
+      ★ 本圖繪出實際訊號線與晶片腳位接法：<strong>紅線 = 類比輸入/48V</strong>、<strong>綠線 = 類比平衡輸出</strong>、<strong>紫線 = TDM16 音訊匯流排</strong>、<strong>藍線 = 數位控制/SPI/I2C</strong>、<strong>青線 = RMII 百兆網口 / USB 2.0 HS</strong>。
+    </p>
+    <svg id="svg-pcb" viewBox="0 0 1400 760" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <!-- 3. 完整零件數量清單 (BOM) -->
+  <div class="card">
+    <h2>3. 32進32出 (32I / 32O) 完整零件數量清單（BOM · 2U 機架式錄音介面規格）</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>分類</th><th>零件型號 / 規格</th><th>32I / 32O 滿配數量</th><th>在電路中的作用與採購備註</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge b-b">主控</span></td><td><strong>ESP32-P4</strong> 雙核 400MHz 模組/晶片</td><td>1 顆</td><td>核心處理、USB 2.0 HS (480M)、100M RMII MAC、2× TDM16 控制</td></tr>
+        <tr><td><span class="badge b-b">網口 PHY</span></td><td><strong>IP101GR</strong> (或 LAN8720A) + <strong>HR911105A</strong> (含變壓器 RJ45)</td><td>1 套</td><td>接 P4 原生 RMII，跑滿 100Mbps VBAN (32×32 16-bit 佔 ~49Mbps；24-bit 佔 ~74Mbps)</td></tr>
+        <tr><td><span class="badge b-b">無線(選配)</span></td><td><strong>ESP32-C6</strong> (走 SDIO)</td><td>0~1 顆</td><td>僅用於提供 Wi-Fi Web UI 設定網頁（純有線可不裝）</td></tr>
+        <tr><td><span class="badge b-g">32路 ADC</span></td><td><strong>CS5368</strong> (8 聲道 24-bit/192kHz ADC，支援 TDM16 菊花鏈)</td><td><strong>4 顆</strong></td><td>每 2 顆串成 1 條 TDM16 (16ch) 進 P4 的 I2S0 與 I2S1，共 32 路輸入</td></tr>
+        <tr><td><span class="badge b-g">32路 DAC</span></td><td><strong>ADAU1966A</strong> (單顆 16 聲道 24-bit DAC，原生支援 TDM16)</td><td><strong>2 顆</strong></td><td>1 顆吃 I2S0 TDM16 (16ch)、1 顆吃 I2S1 TDM16 (16ch)，共 32 路輸出</td></tr>
+        <tr><td><span class="badge b-r">32路 XLR 前級</span></td><td><strong>PGA2500</strong> (數位 SPI 控增益 0~65dB，強烈推薦！)</td><td><strong>32 顆</strong></td><td>★ 32 路必用數位可控增益，否則機箱面板塞不下 32 顆旋鈕</td></tr>
+        <tr><td><span class="badge b-r">32路 6.35 輸出</span></td><td><strong>DRV134</strong> (單端轉平衡) + <strong>OPA1656</strong> (雙運放低通濾波)</td><td><strong>32 顆 + 16 顆</strong></td><td>OPA1656 為雙運放，1 顆管 2 路；DRV134 1 顆管 1 路 (+24dBu 平衡輸出)</td></tr>
+        <tr><td><span class="badge b-y">插座</span></td><td><strong>Neutrik NC3FAH</strong> (XLR 母座) + <strong>6.35mm TRS 平衡母座</strong></td><td><strong>32 + 32 顆</strong></td><td>背板 2U 雙排排列（32 XLR In + 32 TRS Out）</td></tr>
+        <tr><td><span class="badge b-y">保護元件</span></td><td><strong>6.81kΩ (0.1%) 電阻</strong> + <strong>47µF/63V 隔直電容</strong> + <strong>1N4148</strong></td><td><strong>64 + 64 + 128 顆</strong></td><td>每路 XLR 需 2 顆 6.81kΩ 送 48V、2 顆 47µF/63V 隔直、4 顆二極體鉗位</td></tr>
+        <tr><td><span class="badge b-g">電源系統</span></td><td><strong>60W~80W 內建電源</strong> (±15V/2A + +5V/3A + +48V/0.5A + 3.3V/2A)</td><td>1 套</td><td>★ 32 路全開 48V 幻象與類比運放功耗較大，建議使用 2U 機架內建電源</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 4. 32進32出 全陣列單體展開接線圖 -->
+  <div class="card">
+    <h2>4. 32進32出 (32I / 32O) 全陣列單體展開接線圖（所有 32 路獨立單體與匯流排對應）</h2>
+    <p style="font-size:13px;color:#475569;margin:0 0 10px">
+      ★ 本圖將 <strong>32× XLR</strong>、<strong>32× PGA2500</strong>、<strong>4× CS5368</strong>、<strong>ESP32-P4</strong>、<strong>2× ADAU1966A</strong>、<strong>16× OPA1656</strong>、<strong>32× DRV134</strong>、<strong>32× 6.35mm TRS</strong> 全部展開，呈現每一顆單體的訊號與控制接線。
+    </p>
+    <svg id="svg-array" viewBox="0 0 1400 1980" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+</div>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+function drawBox(svg, x, y, w, h, title, lines, col, bg) {
+  const g = document.createElementNS(NS, 'g');
+  const r = document.createElementNS(NS, 'rect');
+  r.setAttribute('x', x); r.setAttribute('y', y); r.setAttribute('width', w); r.setAttribute('height', h);
+  r.setAttribute('rx', 8); r.setAttribute('fill', bg || '#fff'); r.setAttribute('stroke', col); r.setAttribute('stroke-width', 2);
+  g.appendChild(r);
+  const t = document.createElementNS(NS, 'text');
+  t.setAttribute('x', x + 10); t.setAttribute('y', y + 20); t.setAttribute('font-size', 13); t.setAttribute('font-weight', 700); t.setAttribute('fill', col);
+  t.textContent = title; g.appendChild(t);
+  lines.forEach((l, i) => {
+    const lt = document.createElementNS(NS, 'text');
+    lt.setAttribute('x', x + 10); lt.setAttribute('y', y + 39 + i * 16); lt.setAttribute('font-size', 11.2); lt.setAttribute('fill', '#334155');
+    lt.textContent = l; g.appendChild(lt);
+  });
+  svg.appendChild(g);
+}
+function drawWire(svg, pts, col, label, lx, ly) {
+  const p = document.createElementNS(NS, 'path');
+  p.setAttribute('d', 'M' + pts.map(pt => pt.join(' ')).join(' L '));
+  p.setAttribute('stroke', col); p.setAttribute('stroke-width', 2.4); p.setAttribute('fill', 'none');
+  svg.appendChild(p);
+  if (label) {
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', lx); t.setAttribute('y', ly); t.setAttribute('font-size', 11); t.setAttribute('font-weight', 700); t.setAttribute('fill', col);
+    t.textContent = label; svg.appendChild(t);
+  }
+}
+
+// 1. 工程方塊圖 (32I / 32O)
+const bSvg = document.getElementById('svg-block');
+drawBox(bSvg, 20, 20, 270, 210, '1. XLR 麥克風輸入區 (×32路)', ['• 32× Neutrik XLR 母座', '• +48V 幻象電源 (6.81kΩ×64)', '• 47µF/63V 隔直 + 鉗位保護', '• 32× PGA2500 數位控增益前級', '  (SPI 串聯控制 0~65dB 增益)'], '#dc2626', '#fef2f2');
+drawBox(bSvg, 20, 260, 270, 210, '2. 6.35mm 平衡輸出區 (×32路)', ['• 32× 6.35mm TRS 平衡母座', '• 32× DRV134 (單端轉平衡 +24dBu)', '• 16× OPA1656 雙運放低通濾波', '  (供電：±15V/2A 低雜訊雙電源)'], '#059669', '#ecfdf5');
+
+drawBox(bSvg, 360, 120, 250, 240, '3. 32×32 TDM16 轉換核心', ['• 輸入：4× CS5368 (8ch ADC)', '  - 每 2 顆串成 1 條 TDM16 (16ch)', '• 輸出：2× ADAU1966A (16ch DAC)', '  - 原生支援 TDM16', '• 主時脈：24.576MHz 低抖動晶振', '• 透過 I2S0 (TDM16) + I2S1 (TDM16)', '  與 ESP32-P4 進行 32×32 全雙工'], '#7c3aed', '#f5f3ff');
+
+drawBox(bSvg, 680, 100, 260, 280, '4. ESP32-P4 主控核心', ['• 雙核 RISC-V 400MHz + 32MB PSRAM', '• I2S0 (TDM8) + I2S1 (TDM8) 音訊', '• SPI 控制 12 顆 PGA2500 增益', '• I2C 控制 2 顆 CS42448', '• 原生 100M Ethernet MAC (RMII)', '• 原生 USB 2.0 High-Speed (480M)', '• (可選) I2S2 接 WM8804 做 S/PDIF'], '#0284c7', '#f0f9ff');
+
+drawBox(bSvg, 1010, 40, 260, 120, '5A. 百兆有線 VBAN 網口', ['• IP101GR / LAN8720A PHY', '• HR911105A 含變壓器 RJ45', '• 實戰可跑 16×16 ~ 32×32 VBAN'], '#0d9488', '#f0fdfa');
+drawBox(bSvg, 1010, 190, 260, 120, '5B. USB 2.0 高速 ASIO', ['• 原生 USB-C (480 Mbps HS)', '• 免驅動 UAC2 (Windows/Mac)', '• 支援 ASIO 進 DAW 錄音 16×16'], '#2563eb', '#eff6ff');
+drawBox(bSvg, 1010, 340, 260, 120, '5C. 選配 Wi-Fi (ESP32-C6)', ['• 走 SDIO 介面連接 P4', '• 專責 Web UI 網頁設定與監控'], '#64748b', '#f8fafc');
+
+drawWire(bSvg, [[290,125],[325,125],[325,180],[360,180]], '#dc2626', '32路類比進', 295, 115);
+drawWire(bSvg, [[360,300],[325,300],[325,365],[290,365]], '#059669', '32路類比出', 295, 385);
+drawWire(bSvg, [[610,200],[680,200]], '#7c3aed', 'I2S0 TDM16', 615, 190);
+drawWire(bSvg, [[610,280],[680,280]], '#7c3aed', 'I2S1 TDM16', 615, 270);
+drawWire(bSvg, [[940,140],[975,140],[975,100],[1010,100]], '#0d9488', 'RMII', 950, 92);
+drawWire(bSvg, [[940,250],[1010,250]], '#2563eb', 'USB D+/D-', 945, 240);
+drawWire(bSvg, [[940,340],[975,340],[975,400],[1010,400]], '#64748b', 'SDIO', 950, 415);
+
+// 2. 真實針腳對針腳 (Pin-to-Pin) 詳細 SVG 接線圖
+const pSvg = document.getElementById('svg-pcb');
+function pinChip(x, y, w, h, title, col, bg, leftPins, rightPins) {
+  drawBox(pSvg, x, y, w, h, title, [], col, bg);
+  const txt = (px, py, t, anc) => {
+    const el = document.createElementNS(NS, 'text');
+    el.setAttribute('x', px); el.setAttribute('y', py); el.setAttribute('font-size', 10.5);
+    el.setAttribute('font-weight', 700); el.setAttribute('fill', '#1e293b');
+    el.setAttribute('text-anchor', anc); el.textContent = t; pSvg.appendChild(el);
+  };
+  const dot = (cx, cy) => {
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', 4);
+    c.setAttribute('fill', col); pSvg.appendChild(c);
+  };
+  leftPins.forEach(([py, label]) => { dot(x, py); txt(x + 8, py + 4, label, 'start'); });
+  rightPins.forEach(([py, label]) => { dot(x + w, py); txt(x + w - 8, py + 4, label, 'end'); });
+}
+
+// 左上：XLR +48V -> PGA2500 -> CS5368
+pinChip(20, 30, 150, 150, 'XLR 母座 (×32)', '#dc2626', '#fef2f2', [], [[70,'Pin 2 Hot (+)'],[110,'Pin 3 Cold (-)'],[150,'Pin 1 GND']]);
+pinChip(270, 30, 190, 170, 'PGA2500 前級 (×32)', '#b91c1c', '#fff', [[70,'VIN+ (←47µF/63V)'],[110,'VIN- (←47µF/63V)'],[150,'SPI SCLK/SDI/CS']], [[70,'VOUT+'],[110,'VOUT-'],[150,'SDO (串下一顆)']]);
+pinChip(540, 30, 190, 180, 'CS5368 ADC (×4)', '#7c3aed', '#f5f3ff', [[70,'AIN1+'],[110,'AIN1-'],[150,'MCLK (24.576M)']], [[70,'SDOUT (TDM16)'],[110,'SCLK (24.576M)'],[150,'LRCK (48kHz)']]);
+
+drawWire(pSvg, [[170,70],[270,70]], '#dc2626', '47µF/63V + 6.81kΩ(48V)', 175, 62);
+drawWire(pSvg, [[170,110],[270,110]], '#dc2626', '47µF/63V + 1N4148', 175, 126);
+drawWire(pSvg, [[460,70],[540,70]], '#dc2626', '100Ω+2.2nF', 468, 62);
+drawWire(pSvg, [[460,110],[540,110]], '#dc2626', '', 0, 0);
+
+// 左下：6.35mm 平衡輸出 <- DRV134 <- OPA1656 <- ADAU1966A
+pinChip(20, 250, 150, 150, '6.35mm TRS (×32)', '#059669', '#ecfdf5', [], [[290,'Tip (+ Hot)'],[330,'Ring (- Cold)'],[370,'Sleeve (AGND)']]);
+pinChip(270, 250, 190, 150, 'DRV134 平衡驅動', '#047857', '#fff', [[290,'VO+ (Pin 8)'],[330,'VO- (Pin 1)'],[370,'±15V 電源']], [[310,'IN (Pin 4)']]);
+pinChip(540, 250, 190, 180, 'ADAU1966A DAC (×2)', '#7c3aed', '#f5f3ff', [[310,'OUT1 (經OPA1656)'],[350,'±5V / 3.3V'],[390,'I2C SDA/SCL']], [[290,'SDATA (TDM16)'],[330,'BCLK (24.576M)'],[370,'LRCK (48kHz)']]);
+
+drawWire(pSvg, [[270,290],[170,290]], '#059669', '47Ω 保護', 195, 282);
+drawWire(pSvg, [[270,330],[170,330]], '#059669', '47Ω 保護', 195, 346);
+drawWire(pSvg, [[540,310],[460,310]], '#059669', '10µF 耦合', 472, 302);
+
+// 中右：ESP32-P4 主控核心
+pinChip(830, 30, 260, 410, 'ESP32-P4 主控核心', '#0284c7', '#f0f9ff',
+  [[70,'I2S0_DIN (TDM16)'],[110,'I2S0_BCLK (24.576M)'],[150,'I2S0_WS (48kHz)'],[190,'I2S0_MCLK (24.576M)'],
+   [250,'SPI_SCK/MOSI/CS'],[290,'I2S0_DOUT (TDM16)'],[330,'I2S1_DIN/DOUT (Ch17-32)'],[390,'I2C SDA/SCL']],
+  [[90,'EMAC_TXD0/1, TX_EN'],[140,'EMAC_RXD0/1, CRS_DV'],[190,'EMAC_MDC / MDIO'],[280,'USB_D+ / USB_D- (HS)'],[360,'SDIO (選配 C6 Wi-Fi)']]);
+
+// TDM16 紫線接進 ESP32-P4
+drawWire(pSvg, [[730,70],[830,70]], '#7c3aed', 'ADC TDM16', 745, 62);
+drawWire(pSvg, [[730,110],[830,110]], '#7c3aed', 'BCLK', 765, 102);
+drawWire(pSvg, [[730,150],[830,150]], '#7c3aed', 'LRCK', 765, 142);
+drawWire(pSvg, [[830,290],[730,290]], '#7c3aed', 'DAC TDM16', 745, 282);
+drawWire(pSvg, [[830,250],[780,250],[780,220],[230,220],[230,150],[270,150]], '#0284c7', 'SPI 控制 32×PGA2500', 480, 212);
+
+// 最右側：IP101GR RMII + USB 2.0 HS
+pinChip(1160, 30, 210, 200, 'IP101GR + RJ45', '#0d9488', '#f0fdfa', [[90,'TXD0/1, TXEN'],[140,'RXD0/1, CRS_DV'],[190,'MDC / MDIO']], []);
+pinChip(1160, 250, 210, 90, 'USB-C (480Mbps HS)', '#2563eb', '#eff6ff', [[280,'D+ / D- (90Ω差分)']], []);
+drawWire(pSvg, [[1090,90],[1160,90]], '#0d9488', 'RMII', 1105, 82);
+drawWire(pSvg, [[1090,140],[1160,140]], '#0d9488', '', 0, 0);
+drawWire(pSvg, [[1090,190],[1160,190]], '#0d9488', '', 0, 0);
+drawWire(pSvg, [[1090,280],[1160,280]], '#2563eb', '480M', 1105, 272);
+
+// 底部：電源架構與 PCB 佈局鐵律
+drawBox(pSvg, 20, 470, 1350, 260, '電源架構與 4 層 PCB 佈局防雜訊鐵律（32進32出必讀）', [
+  '1. 主電源：內建 60W~80W 電源供應器 ➔ 輸出【±15V / 2A 類比雙電源】、【+48V / 0.5A 幻象電源】、【+5V / 3A】、【+3.3V / 2A 數位電源】。',
+  '2. ±15V 類比雙電源：專供 32× PGA2500、32× DRV134、16× OPA1656，確保 +24dBu 平衡輸出動態餘量；每顆晶片旁必放 100nF + 10µF 退耦電容。',
+  '3. +48V 幻象電源：經兩級 RC 濾波與各路獨立繼電器，透過 6.81kΩ (0.1% 精密電阻) 送入 XLR Pin 2/3；47µF/63V 電解電容正極朝 XLR 端。',
+  '4. 接地隔離 (Star Ground)：4 層板第 2 層為完整地平面，切割為【類比地 AGND】與【數位地 DGND】，僅在 CS5368 / ADAU1966A 正下方單點相連！',
+  '5. 高頻走線：24.576MHz MCLK/BCLK 與 RMII (50MHz) 走線盡量短且串聯 33Ω 阻尼電阻，遠離 XLR 麥克風前端輸入。'
+], '#475569', '#f8fafc');
+
+// 4. 32進32出 全陣列單體展開接線圖
+const aSvg = document.getElementById('svg-array');
+function miniBox(svg, x, y, w, h, text, sub, col, bg) {
+  const g = document.createElementNS(NS, 'g');
+  const r = document.createElementNS(NS, 'rect');
+  r.setAttribute('x', x); r.setAttribute('y', y); r.setAttribute('width', w); r.setAttribute('height', h);
+  r.setAttribute('rx', 4); r.setAttribute('fill', bg || '#fff'); r.setAttribute('stroke', col); r.setAttribute('stroke-width', 1.5);
+  g.appendChild(r);
+  const t = document.createElementNS(NS, 'text');
+  t.setAttribute('x', x + w / 2); t.setAttribute('y', y + (sub ? 15 : h / 2 + 4));
+  t.setAttribute('font-size', 10.5); t.setAttribute('font-weight', 700); t.setAttribute('fill', col);
+  t.setAttribute('text-anchor', 'middle'); t.textContent = text;
+  g.appendChild(t);
+  if (sub) {
+    const s = document.createElementNS(NS, 'text');
+    s.setAttribute('x', x + w / 2); s.setAttribute('y', y + 29);
+    s.setAttribute('font-size', 9); s.setAttribute('fill', '#475569');
+    s.setAttribute('text-anchor', 'middle'); s.textContent = sub;
+    g.appendChild(s);
+  }
+  svg.appendChild(g);
+}
+function thinWire(svg, pts, col, w = 1.4) {
+  const p = document.createElementNS(NS, 'path');
+  p.setAttribute('d', 'M' + pts.map(pt => pt.join(' ')).join(' L '));
+  p.setAttribute('stroke', col); p.setAttribute('stroke-width', w); p.setAttribute('fill', 'none');
+  svg.appendChild(p);
+}
+
+// 欄位標題
+const headers = [
+  [55, '32× XLR 輸入', '#dc2626'], [205, '32× PGA2500', '#b91c1c'], [385, '4× CS5368 ADC', '#7c3aed'],
+  [640, 'ESP32-P4 主控', '#0284c7'], [885, '2× ADAU1966A DAC', '#7c3aed'], [1060, '16× OPA1656', '#059669'],
+  [1205, '32× DRV134', '#047857'], [1340, '32× 6.35mm TRS', '#059669']
+];
+headers.forEach(([hx, ht, hc]) => {
+  const el = document.createElementNS(NS, 'text');
+  el.setAttribute('x', hx); el.setAttribute('y', 24); el.setAttribute('font-size', 12);
+  el.setAttribute('font-weight', 700); el.setAttribute('fill', hc); el.setAttribute('text-anchor', 'middle');
+  el.textContent = ht; aSvg.appendChild(el);
+});
+
+const rowY = (ch) => 40 + (ch - 1) * 58 + Math.floor((ch - 1) / 8) * 16;
+
+// 繪製 32 路輸入 (XLR -> PGA2500) 與 32 路輸出 (DRV134 -> TRS)
+for (let ch = 1; ch <= 32; ch++) {
+  const y = rowY(ch);
+  const midY = y + 22;
+  // 輸入：XLR -> PGA2500
+  miniBox(aSvg, 12, y, 86, 44, `XLR In ${ch}`, '+48V / 47µF', '#dc2626', '#fef2f2');
+  miniBox(aSvg, 145, y, 120, 44, `PGA2500 #${ch}`, 'SPI Gain (0~65dB)', '#b91c1c', '#fff');
+  thinWire(aSvg, [[98, midY - 6], [145, midY - 6]], '#dc2626', 1.6);
+  thinWire(aSvg, [[98, midY + 6], [145, midY + 6]], '#dc2626', 1.6);
+  // PGA2500 SPI 菊花鏈 (SDO -> SDI)
+  if (ch < 32) {
+    thinWire(aSvg, [[205, y + 44], [205, rowY(ch + 1)]], '#0284c7', 1.2);
+  }
+  // PGA2500 -> CS5368
+  thinWire(aSvg, [[265, midY - 5], [315, midY - 5]], '#dc2626', 1.5);
+  thinWire(aSvg, [[265, midY + 5], [315, midY + 5]], '#dc2626', 1.5);
+
+  // 輸出：DRV134 -> 6.35mm TRS
+  miniBox(aSvg, 1150, y, 110, 44, `DRV134 #${ch}`, '平衡驅動 (+24dBu)', '#047857', '#fff');
+  miniBox(aSvg, 1295, y, 92, 44, `TRS Out ${ch}`, '47Ω 保護', '#059669', '#ecfdf5');
+  thinWire(aSvg, [[1260, midY - 6], [1295, midY - 6]], '#059669', 1.6);
+  thinWire(aSvg, [[1260, midY + 6], [1295, midY + 6]], '#059669', 1.6);
+}
+
+// 繪製 4 顆 CS5368 (每顆管 8 路)
+for (let a = 0; a < 4; a++) {
+  const yStart = rowY(a * 8 + 1);
+  const yEnd = rowY(a * 8 + 8) + 44;
+  const h = yEnd - yStart;
+  const midY = yStart + h / 2;
+  miniBox(aSvg, 315, yStart, 140, h, `CS5368 #${a + 1} (8ch)`, `Ch ${a * 8 + 1}~${a * 8 + 8} -> TDM16`, '#7c3aed', '#f5f3ff');
+  // 兩兩菊花鏈進 ESP32-P4 (ADC1+2 -> I2S0_DIN, ADC3+4 -> I2S1_DIN)
+  const p4InY = a < 2 ? 780 + a * 40 : 1100 + (a - 2) * 40;
+  thinWire(aSvg, [[455, midY], [490, midY], [490, p4InY], [530, p4InY]], '#7c3aed', 2.2);
+}
+
+// 繪製 16 顆 OPA1656 (每顆雙運放管 2 路)
+for (let op = 0; op < 16; op++) {
+  const ch1 = op * 2 + 1;
+  const y1 = rowY(ch1);
+  const y2 = rowY(ch1 + 1) + 44;
+  const h = y2 - y1;
+  miniBox(aSvg, 1005, y1, 110, h, `OPA1656 #${op + 1}`, `Ch ${ch1}-${ch1 + 1} 雙運放`, '#059669', '#f0fdf4');
+  // 連至兩顆 DRV134
+  thinWire(aSvg, [[1115, rowY(ch1) + 22], [1150, rowY(ch1) + 22]], '#059669', 1.6);
+  thinWire(aSvg, [[1115, rowY(ch1 + 1) + 22], [1150, rowY(ch1 + 1) + 22]], '#059669', 1.6);
+  // 從 ADAU1966A 連至 OPA1656
+  thinWire(aSvg, [[955, rowY(ch1) + 22], [1005, rowY(ch1) + 22]], '#059669', 1.5);
+  thinWire(aSvg, [[955, rowY(ch1 + 1) + 22], [1005, rowY(ch1 + 1) + 22]], '#059669', 1.5);
+}
+
+// 繪製 2 顆 ADAU1966A (每顆管 16 路)
+for (let d = 0; d < 2; d++) {
+  const yStart = rowY(d * 16 + 1);
+  const yEnd = rowY(d * 16 + 16) + 44;
+  const h = yEnd - yStart;
+  const midY = yStart + h / 2;
+  miniBox(aSvg, 815, yStart, 140, h, `ADAU1966A #${d + 1} (16ch)`, `Ch ${d * 16 + 1}~${d * 16 + 16} TDM16`, '#7c3aed', '#f5f3ff');
+  const p4OutY = d === 0 ? 800 : 1120;
+  thinWire(aSvg, [[750, p4OutY], [785, p4OutY], [785, midY], [815, midY]], '#7c3aed', 2.4);
+}
+
+// 中央：ESP32-P4 主控 + 網口 + USB-C
+drawBox(aSvg, 530, 720, 220, 480, 'ESP32-P4 主控核心', [
+  '• I2S0_DIN  ◀ CS5368 #1+#2 (Ch1-16)',
+  '• I2S0_DOUT ▶ ADAU1966A #1 (Ch1-16)',
+  '• I2S1_DIN  ◀ CS5368 #3+#4 (Ch17-32)',
+  '• I2S1_DOUT ▶ ADAU1966A #2 (Ch17-32)',
+  '• SPI (SCK/MOSI/CS) ▶ 32× PGA2500',
+  '• I2C (SDA/SCL) ▶ 2× ADAU1966A',
+  '• 24.576MHz MCLK/BCLK 同步所有 ADC/DAC',
+  '',
+  '• EMAC (RMII) ◀▶ IP101GR + RJ45',
+  '• USB 2.0 HS  ◀▶ USB-C (480Mbps)'
+], '#0284c7', '#f0f9ff');
+
+// ESP32-P4 SPI 連到 PGA2500 #16 (進入菊花鏈)
+thinWire(aSvg, [[530, 960], [205, 960], [205, rowY(16) + 44]], '#0284c7', 1.8);
+// ESP32-P4 I2C 連到 2× ADAU1966A
+thinWire(aSvg, [[750, 980], [798, 980], [798, 500], [815, 500]], '#0284c7', 1.6);
+thinWire(aSvg, [[798, 980], [798, 1450], [815, 1450]], '#0284c7', 1.6);
+</script>
+</body>
+</html>
