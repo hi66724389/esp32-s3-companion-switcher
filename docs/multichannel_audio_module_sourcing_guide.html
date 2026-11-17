@@ -704,6 +704,133 @@
     </ul>
   </section>
 
+  <!-- Section 9: DAC Output Stage, Balanced Line Drivers, Headphone Amps & Digitally-Controlled Volume -->
+  <section class="section">
+    <h2>九、DAC 輸出級放大器、平衡線路驅動、耳放與數位控制音量晶片／模組推薦</h2>
+    <p class="section-desc">與麥克風前級（<code>PGA2500</code>）不同，DAC 輸出級負責低通濾波 (LPF)、阻抗匹配、單端轉全平衡 (+4 dBu) 與數位控制衰減／耳機驅動。</p>
+
+    <h3>1. 平衡線路驅動 / LPF 緩衝 / 耳放晶片與現成模組</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>用途定位</th>
+          <th>推薦晶片型號</th>
+          <th>核心規格與優勢</th>
+          <th>現成模組搜尋關鍵字（點擊複製）</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>專業全平衡線路驅動 (首選)</strong></td>
+          <td><strong><code>THAT1646</code></strong></td>
+          <td>OutSmarts® 技術、0.0007% THD、固定 +6 dB 差動增益、+28 dBu @ 600Ω 餘裕；不怕誤接單端過載</td>
+          <td><button class="kw-btn" data-kw="THAT1646 平衡輸出板">THAT1646 平衡輸出板</button></td>
+        </tr>
+        <tr>
+          <td><strong>經典平衡線路驅動</strong></td>
+          <td><strong><code>TI DRV134</code></strong></td>
+          <td>0.0005% THD、15 V/µs、固定 +6 dB 差動增益，與 THAT1646 腳位兼容</td>
+          <td><button class="kw-btn" data-kw="DRV134 單端轉平衡板">DRV134 單端轉平衡板</button></td>
+        </tr>
+        <tr>
+          <td><strong>DAC I/V 與差動濾波運放</strong></td>
+          <td><strong><code>OPA1632</code> + <code>OPA1612</code></strong><br><span style="font-size:12px;color:var(--muted)">(平價替代：<code>NE5532</code>)</span></td>
+          <td>OPA1632 全差動放大 (1.3 nV/√Hz)；OPA1612 超低噪聲雙運放 (1.1 nV/√Hz)，用於 LPF 濾波與緩衝</td>
+          <td><button class="kw-btn" data-kw="OPA1632 平衡輸出板">OPA1632 平衡輸出板</button> <button class="kw-btn" data-kw="OPA1612 雙運放前級板">OPA1612 雙運放前級板</button></td>
+        </tr>
+        <tr>
+          <td><strong>專業監聽耳機放大器</strong></td>
+          <td><strong><code>TI TPA6120A2</code></strong></td>
+          <td>電流回授架構、128 dB 動態範圍、1300 V/µs、0.00014% THD+N，可推高阻抗監聽耳機</td>
+          <td><button class="kw-btn" data-kw="TPA6120A2 耳放板">TPA6120A2 耳放板</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>2. 支援數位控制音量／增益的輸出晶片（SPI / I2C）</h3>
+    <p class="section-desc">保留 DAC 滿刻度數位動態範圍，改由 Luckfox / ESP32-S3 透過 SPI 或 I2C 精確切換類比衰減／增益。</p>
+    <table>
+      <thead>
+        <tr>
+          <th>晶片型號</th>
+          <th>通道數</th>
+          <th>控制匯流排</th>
+          <th>核心規格與特色</th>
+          <th>現成模組搜尋關鍵字（點擊複製）</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong><code>TI PGA2311</code></strong> / <code>PGA2310</code></td>
+          <td>2 聲道</td>
+          <td><strong>3-wire SPI</strong></td>
+          <td>120 dB 動態範圍、過零偵測無爆音；PGA2311 為 ±5V、PGA2310 為 ±15V 高擺幅版</td>
+          <td><button class="kw-btn" data-kw="PGA2311 數位音量控制板">PGA2311 數位音量控制板</button></td>
+        </tr>
+        <tr>
+          <td><strong><code>TI PGA4311</code></strong></td>
+          <td>4 聲道</td>
+          <td><strong>3-wire SPI</strong></td>
+          <td>與 PGA2311 同架構，單顆控 4 軌輸出，適合多軌混音器精簡佈線</td>
+          <td><button class="kw-btn" data-kw="PGA4311 4通道音量控制板">PGA4311 4通道音量控制板</button></td>
+        </tr>
+        <tr>
+          <td><strong><code>Cirrus CS3318</code></strong></td>
+          <td><strong>8 聲道</strong></td>
+          <td><strong>I2C / SPI</strong></td>
+          <td>單顆即控 8 軌輸出，可與 <code>CS42448</code> 共用同一組 I2C 匯流排</td>
+          <td><button class="kw-btn" data-kw="CS3318 8通道音量板">CS3318 8通道音量板</button></td>
+        </tr>
+        <tr>
+          <td><strong><code>NJR MUSES72320</code></strong></td>
+          <td>2 聲道</td>
+          <td><strong>2-wire 串列 (類 I2C)</strong></td>
+          <td>旗艦級電阻陣列數位音量控制 IC，搭配高階運放可得極致低噪聲</td>
+          <td><button class="kw-btn" data-kw="MUSES72320 音量控制板">MUSES72320 音量控制板</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>3. 可直接用外部電阻（或電位器）調整增益的晶片</h3>
+    <p class="section-desc"><code>THAT1646</code> / <code>DRV134</code> 為<strong>固定 +6 dB</strong>；若希望透過外部電阻或微調電位器自由設定放大倍率，請選用下表晶片：</p>
+    <table>
+      <thead>
+        <tr>
+          <th>晶片型號</th>
+          <th>類型</th>
+          <th>增益設定方式</th>
+          <th>現成模組搜尋關鍵字（點擊複製）</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong><code>TI OPA1632</code></strong></td>
+          <td>全差動平衡運放</td>
+          <td>外部成對回授電阻比值：<code>G = Rf / Rin</code></td>
+          <td><button class="kw-btn" data-kw="OPA1632 平衡輸出板">OPA1632 平衡輸出板</button></td>
+        </tr>
+        <tr>
+          <td><strong><code>OPA1612</code></strong> / <code>OPA2134</code> / <code>NE5532</code></td>
+          <td>通用雙運放</td>
+          <td>回授電阻比值：<code>G = 1 + Rf / Rg</code>（可接可變電阻）</td>
+          <td><button class="kw-btn" data-kw="NE5532 前級放大板">NE5532 前級放大板</button> <button class="kw-btn" data-kw="OPA1612 前級模組">OPA1612 前級模組</button></td>
+        </tr>
+        <tr>
+          <td><strong><code>TI TPA6120A2</code></strong></td>
+          <td>耳機放大器</td>
+          <td>外部回授電阻設定增益（常見 +0 至 +12 dB）</td>
+          <td><button class="kw-btn" data-kw="TPA6120A2 耳放板">TPA6120A2 耳放板</button></td>
+        </tr>
+        <tr>
+          <td><strong><code>THAT1512</code></strong> / <strong><code>TI INA163</code></strong></td>
+          <td>單電阻儀表音訊前級</td>
+          <td><strong>只需一顆電阻 <code>Rg</code></strong> 即可線性設定 0–60 dB 增益</td>
+          <td><button class="kw-btn" data-kw="INA163 麥克風放大板">INA163 麥克風放大板</button> <button class="kw-btn" data-kw="THAT1512 前級板">THAT1512 前級板</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
 </div>
 
 <script>
