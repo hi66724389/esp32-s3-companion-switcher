@@ -844,6 +844,54 @@
     </div>
   </section>
 
+  <!-- Section 10: XLR Input Front-End Digital Switching -->
+  <section class="section">
+    <h2>十、XLR 輸入前端數位切換全規劃（Mic / Hi-Z 樂器 / 48V / -20 dB PAD）</h2>
+    <p class="section-desc">透過 <strong>I2C 擴充晶片 (<code>TCA9555</code>) ＋ 微型訊號繼電器 / 高壓類比開關</strong>，讓 Luckfox / ESP32-S3 僅用 2 條 I2C 線即可數位獨立切換每軌輸入模式。</p>
+
+    <pre style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto;font-size:12.5px;line-height:1.45;color:#e6edf3;"><code>[XLR / Combo Jack]
+   ├──(Pin 2/3)──► [48V 切換: TLP241A 光耦 + RC 緩啟動] ──► (經 6.81kΩ 匹配電阻)
+   ├──► [47µF/63V 隔直 + TVS 保護] ──► [PAD -20dB: G6K 繼電器 / ADG1419]
+   └──(TRS Hi-Z)──► [1MΩ JFET 緩衝 (OPA1656)] ──► [Mic/Hi-Z 切換] ──► [PGA2500 / THAT1512]</code></pre>
+
+    <table>
+      <thead>
+        <tr>
+          <th>切換功能</th>
+          <th>硬體實作重點</th>
+          <th>推薦切換元件</th>
+          <th>安全互鎖與採購關鍵字</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Mic (~2kΩ) ↔ Hi-Z (~1MΩ)</strong></td>
+          <td>XLR 進平衡前級；TRS 進 <code>OPA1656</code> JFET 高阻緩衝後切入</td>
+          <td><code>Omron G6K-2F-Y</code> 訊號繼電器 或 <code>ADI ADG1419</code> (±15V 類比開關)</td>
+          <td>切至 Hi-Z 時程式強制關閉該軌 +48V</td>
+        </tr>
+        <tr>
+          <td><strong>+48V 幻象電源</strong></td>
+          <td>雙 <code>6.81kΩ (0.1%)</code> 匹配電阻 + <strong>RC 緩啟動</strong>防切換爆音</td>
+          <td><code>Toshiba TLP241A</code> / <code>AQY212</code> PhotoMOS 光耦繼電器（無聲高壓）</td>
+          <td>後端必接 <code>47µF/63V</code> 隔直電容保護前級</td>
+        </tr>
+        <tr>
+          <td><strong>-20 dB PAD 衰減</strong></td>
+          <td>平衡 U-Pad（<code>680Ω</code>×2 + <code>150Ω</code>），置於隔直電容<strong>之後</strong></td>
+          <td><code>Omron G6K-2F-Y</code> (0% THD) 或 <code>ADG1419</code> (~2Ω)</td>
+          <td>開 PAD 時仍可正常開啟 +48V</td>
+        </tr>
+        <tr>
+          <td><strong>數位控制擴充匯流排</strong></td>
+          <td>2 線 I2C 控多軌所有開關，支援狀態記憶</td>
+          <td><code>TI TCA9555</code> (16-bit I2C) + <code>ULN2803A</code> 繼電器驅動</td>
+          <td><button class="kw-btn" data-kw="TCA9555 I2C 擴展模組">TCA9555 I2C 擴展模組</button> <button class="kw-btn" data-kw="5V 訊號繼電器模組">5V 訊號繼電器模組</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
 </div>
 
 <script>
