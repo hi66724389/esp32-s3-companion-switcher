@@ -293,6 +293,48 @@
     </table>
   </section>
 
+  <!-- 4. Luckfox 開發、開機自啟與系統燒錄 -->
+  <section class="card">
+    <h2>四、橋接程式語言、systemd 自動啟動與 Luckfox 系統燒錄</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:24%">工程項目</th>
+          <th style="width:76%">實作與操作方式</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>橋接程式語言選擇</strong></td>
+          <td>
+            • <strong>Python（快速原型）</strong>：用 <code>python-osc</code>（OSC）+ <code>mido</code>（Mackie MIDI）+ <code>pycamilladsp</code>（CamillaDSP）+ <code>smbus2</code>（讀 ADS1115），數十行即可跑通。<br>
+            • <strong>C / C++ / Rust（量產首選）</strong>：維持 <code>200–500Hz</code> 絲滑馬達 PID，不搶佔音訊 DSP 執行緒。
+          </td>
+        </tr>
+        <tr>
+          <td><strong>開機自動化 &amp; 硬體隔離</strong></td>
+          <td>
+            • 用 <code>systemd</code> 服務（<code>systemctl enable fader-bridge</code>）設定開機自啟與異常自動重啟。<br>
+            • 金屬機殼接地屏蔽＋Core3576 散熱導熱墊；類比前級與 <code>9V</code> 馬達／高速 TDM 分區隔離，電源入口星狀單點接地。
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Luckfox 系統燒錄<br>(怎麼灌系統)</strong></td>
+          <td>
+            • <strong>MicroSD 卡版</strong>：用讀卡機＋ <code>balenaEtcher</code> / <code>Rufus</code> / <code>SDDiskTool</code> 寫入官方鏡像插卡開機。<br>
+            • <strong>板載 eMMC / Flash 版</strong>：按住板載 <code>BOOT / MASKROM</code> 鍵插上 Type-C，以瑞芯微 <code>RKDevTool</code>（Windows）寫入官方鏡像。
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Luckfox 程式開發流程</strong></td>
+          <td>
+            • 透過網口或 USB RNDIS 使用 <code>SSH</code>（或 <code>ADB</code>）連進終端機直接開發 Python；C/C++/Rust 則於電腦 Cross-Toolchain 交叉編譯後 <code>scp</code> 上板執行。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
 </div>
 
 <script>

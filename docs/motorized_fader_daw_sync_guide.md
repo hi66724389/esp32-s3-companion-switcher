@@ -89,3 +89,26 @@ flowchart LR
 | 3 | 高精度 ADC | **`ADS1115` 16-bit 4路 I2C ADC 模組** | 1 片 | 若開發板內建 ADC 數量不夠或雜訊大，用 1 片即可讀 4 支推桿 |
 | 4 | 觸摸感應 | **`TTP223`** 或 **`AT42QT1010`** 電容觸摸模組 | 4 顆 | 接推桿 Touch 腳，轉成乾淨 `0/1` GPIO 防搶手訊號 |
 | 5 | 馬達獨立電源 | **`9V / 2A` 獨立電源**（與類比音訊地分離，電源入口共地） | 1 組 | 避免馬達啟動電流干擾 ADC 讀值與麥克風前級 |
+
+---
+
+## 六、橋接程式語言選擇、系統自動化與硬體工程細節
+
+1. **橋接程式開發語言選擇**：
+   * **Python（最快驗證原型）**：在 Luckfox Linux 直接用 `python3` 開發，搭配現成套件 `python-osc`（發收 Ardour OSC）、`mido` / `python-rtmidi`（Mackie Control MIDI）、`pycamilladsp`（CamillaDSP WebSocket）與 `smbus2`（讀 `ADS1115`），數十行即可打通。
+   * **C / C++ 或 Rust（正式量產首選）**：CPU 佔用極低、可穩定維持 `200Hz–500Hz` 馬達 PID 閉迴路且不搶佔音訊 DSP 執行緒。
+2. **開機自動化（`systemd`）**：
+   * 將橋接程式註冊為 Linux 系統服務（`/etc/systemd/system/fader-bridge.service`），執行 `sudo systemctl enable --now fader-bridge`，開機後自動啟動並於異常退出時自動重啟（`Restart=always`）。
+3. **外殼屏蔽、散熱與訊號隔離**：
+   * 金屬機箱接地屏蔽干擾；Core3576（8 核）高負載跑多軌 DSP 需貼散熱片／導熱墊至機殼散熱；類比前級與馬達 `9V` 電源／高速 TDM 走線分區隔離，僅在電源入口做星狀單點接地。
+
+---
+
+## 七、Luckfox 開發流程與作業系統燒錄步驟
+
+1. **怎麼灌系統（燒錄官方 Linux 鏡像）**：
+   * **MicroSD 卡開機（最簡單）**：下載 Luckfox 官方系統鏡像（Buildroot / Debian / Ubuntu），用電腦讀卡機搭配 **`balenaEtcher`**、**`Rufus`** 或瑞芯微 **`SDDiskTool`** 寫入記憶卡，插卡即開機。
+   * **板載 eMMC / SPI NAND Flash 燒錄（正式量產用，如 Core3576 / Core3566）**：在 Windows 安裝瑞芯微 **`RKDevTool`** 與 USB 驅動（`DriverAssitant`），**按住板載 `BOOT`（或 `MASKROM`）按鍵不放再插上 Type-C 連接電腦**，於 `RKDevTool` 匯入官方 `.img` / 分區檔按下「執行（Run）」即可寫入板載記憶體。
+2. **怎麼把程式寫進 Luckfox 裡面**：
+   * **方式 A（本機直接開發 — Python 最方便）**：接上網線或 USB RNDIS 虛擬網卡，用 **`SSH`**（或 `ADB`）連進 Luckfox 終端機，直接編輯並執行 `python3 fader_bridge.py`。
+   * **方式 B（電腦交叉編譯 — C / C++ / Rust）**：在電腦安裝對應的 ARM / ARM64 Cross-Toolchain 編譯出執行檔後，透過 `scp` 傳進 Luckfox，再掛入 `systemd` 背景常駐執行。

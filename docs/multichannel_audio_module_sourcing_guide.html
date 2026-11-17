@@ -545,6 +545,48 @@
     </div>
   </section>
 
+  <!-- 8. MOTU 828mk3 Hybrid 實機參考 -->
+  <section class="card" data-cat="all">
+    <h2>八、實機對標參考：MOTU 828mk3 Hybrid 內部晶片與故障排查</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%">功能級別</th>
+          <th style="width:38%">MOTU 828mk3 Hybrid 實機晶片</th>
+          <th style="width:40%">備註與對標意義</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>ADC（類比輸入）</strong></td>
+          <td><strong><code>Cirrus Logic CS5368</code></strong> (8路) + <strong><code>CS5364</code></strong></td>
+          <td>與本專案選型 <code>CS5368</code> 完全相同</td>
+        </tr>
+        <tr>
+          <td><strong>Mic 前級（Preamp）</strong></td>
+          <td><strong><code>TI PGA2500</code></strong></td>
+          <td>SPI 數位控增益前級</td>
+        </tr>
+        <tr>
+          <td><strong>DAC（類比輸出）</strong></td>
+          <td><strong><code>AKM AK4358</code></strong> (8路) + <code>AK4396</code> + <code>AK4382A</code></td>
+          <td>高性價比 AKM 方案（後期 <code>828es</code> 才改用昂貴 <code>ES9026PRO</code>）</td>
+        </tr>
+        <tr>
+          <td><strong>類比運放</strong></td>
+          <td><strong><code>JRC NJM4580</code></strong></td>
+          <td>經典低噪雙運放</td>
+        </tr>
+        <tr>
+          <td><strong>DSP 與路由核心</strong></td>
+          <td><code>Spartan-3E (XC3S500E)</code> FPGA + <code>TMS320C6722</code> DSP + <code>AT91SAM7S256</code></td>
+          <td>對應本專案 Luckfox Core3576 (<code>Linux + CamillaDSP</code>) 核心</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="note" style="margin-top:10px;"><strong>偶發丟包／滋滋聲排查：</strong>① 確認 Clock Source 為 <code>Internal</code>；② 拔掉電腦線單機測 CueMix 直通——若單機正常則調大電腦 Buffer / 查 USB DPC 延遲；若單機仍爆音，多為電源濾波電容老化引起供電紋波或時脈 PLL 漂移。</p>
+  </section>
+
 </div>
 
 <script>

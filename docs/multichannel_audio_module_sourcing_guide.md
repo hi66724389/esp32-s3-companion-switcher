@@ -69,3 +69,19 @@
 3. **確認時脈方向（Master / Slave & MCLK）**：檢查模組是否自帶 `24.576 MHz` 晶振，或需要由 Luckfox `SAI MCLK` 腳位提供；兩片串接時整機只能有一個時脈 Master。
 4. **注意類比前端是否齊全**：部分便宜子板只有裸晶片輸入腳（僅容許 1–2Vrms Line-In），接麥克風需另配前級（或優先選內建 PGA 的 `PCM1865`）。
 5. **高速跳線鐵則（`24.576 MHz` TDM16）**：杜邦線務必控制在 **5–8 cm 以內**，每條時脈／資料線旁並走 `GND` 迴流線，並在 `BCLK / FSYNC / SDO` 串接 `22Ω–33Ω` 阻尼電阻防振鈴錯位。
+
+---
+
+## 六、實機對標參考：MOTU 828mk3 Hybrid 內部晶片拆解與常見故障排查
+
+| 功能級別 | MOTU 828mk3 Hybrid 實機晶片 | 備註與對標意義 |
+| :--- | :--- | :--- |
+| **ADC（類比輸入）** | **`Cirrus Logic CS5368`** (8路) + **`CS5364`** | 與本專案選型 `CS5368` 完全相同 |
+| **Mic 前級（Preamp）** | **`TI PGA2500`** | SPI 數位控增益前級 |
+| **DAC（類比輸出）** | **`AKM AK4358`** (8路 Line Out) + **`AK4396`** (Main) + **`AK4382A`** (耳機) | 高性價比多通道 AKM 架構（未使用昂貴 `ES9026PRO`；`ES9026PRO` 為後期 `828es` 世代晶片） |
+| **類比運放 / 濾波** | **`JRC NJM4580`** (大量雙運放) | 經典低噪耐操雙運放 |
+| **DSP 與路由核心** | **`Xilinx Spartan-3E (XC3S500E)`** FPGA + **`TI TMS320C6722`** DSP + **`AT91SAM7S256`** MCU | 對應本專案 Luckfox Core3576 (`Linux + CamillaDSP`) 核心 |
+
+### 828mk3 Hybrid 偶發丟包 / 滋滋聲排查順序
+1. **確認 Clock Source**：在 CueMix / 驅動設定確認為 `Internal`（避免誤鎖到未接線的外部 ADAT/Word Clock 造成爆音）。
+2. **區分電腦緩衝 vs. 硬體電源／時鐘老化**：拔掉 USB/FireWire 單機測試 CueMix 直通監聽——若單機正常、接電腦才滋滋聲，為電腦 Buffer Size 過小或 USB DPC 延遲；若單機也出現偶發爆音，多為早期機型**電源板濾波電容老化**（導致類比與 PLL 供電紋波上升）或時脈晶振漂移所致。
