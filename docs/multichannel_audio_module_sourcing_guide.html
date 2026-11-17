@@ -587,6 +587,65 @@
     <p class="note" style="margin-top:10px;"><strong>偶發丟包／滋滋聲排查：</strong>① 確認 Clock Source 為 <code>Internal</code>；② 拔掉電腦線單機測 CueMix 直通——若單機正常則調大電腦 Buffer / 查 USB DPC 延遲；若單機仍爆音，多為電源濾波電容老化引起供電紋波或時脈 PLL 漂移。</p>
   </section>
 
+  <!-- 9. 開源 Linux 驅動範本 -->
+  <section class="card" data-cat="all">
+    <h2>九、開源 Linux 核心驅動範本與 DTS 設備樹（點擊直達 GitHub 原始碼）</h2>
+    <p class="note">驅動可編譯為 <code>.ko</code> 動態模組（<code>insmod</code> / <code>modprobe</code> 直接載入，無須重燒整台系統），設備樹則用 <code>.dtbo</code> Overlay 放入 <code>/boot/</code> 重開機即生效。</p>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%">晶片型號</th>
+          <th style="width:46%">GitHub 開源驅動 / 官方文件連結</th>
+          <th style="width:32%">實務配置重點</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong><code>CS42448</code> / <code>CS42888</code></strong></td>
+          <td>
+            <a href="https://github.com/torvalds/linux/blob/master/sound/soc/codecs/cs42xx8.c" target="_blank">cs42xx8.c</a> ·
+            <a href="https://github.com/torvalds/linux/blob/master/sound/soc/codecs/cs42xx8-i2c.c" target="_blank">cs42xx8-i2c.c</a> ·
+            <a href="https://github.com/torvalds/linux/blob/master/sound/soc/codecs/cs42xx8-spi.c" target="_blank">cs42xx8-spi.c</a>
+          </td>
+          <td>Linux 主線內建 ASoC 多通道 TDM 驅動</td>
+        </tr>
+        <tr>
+          <td><strong><code>AD1938</code> / <code>AD193x</code></strong></td>
+          <td>
+            <a href="https://github.com/torvalds/linux/blob/master/sound/soc/codecs/ad193x.c" target="_blank">ad193x.c</a> ·
+            <a href="https://github.com/torvalds/linux/blob/master/sound/soc/codecs/ad193x-i2c.c" target="_blank">ad193x-i2c.c</a> ·
+            <a href="https://github.com/torvalds/linux/blob/master/sound/soc/codecs/ad193x-spi.c" target="_blank">ad193x-spi.c</a>
+          </td>
+          <td>Linux 主線內建 AD1936/1937/1938 驅動</td>
+        </tr>
+        <tr>
+          <td><strong><code>PCM1865</code> / <code>PCM186x</code></strong></td>
+          <td>
+            <a href="https://github.com/torvalds/linux/blob/master/sound/soc/codecs/pcm186x.c" target="_blank">pcm186x.c</a> ·
+            <a href="https://github.com/torvalds/linux/blob/master/sound/soc/codecs/pcm186x-i2c.c" target="_blank">pcm186x-i2c.c</a> ·
+            <a href="https://github.com/torvalds/linux/blob/master/sound/soc/codecs/pcm186x-spi.c" target="_blank">pcm186x-spi.c</a>
+          </td>
+          <td>Linux 主線內建（含 PGA 增益控制）</td>
+        </tr>
+        <tr>
+          <td><strong><code>CS5368</code></strong></td>
+          <td>
+            採萬用 <code>simple-audio-card</code> / <code>audio-graph-card2</code>；參考：
+            <a href="https://github.com/torvalds/linux/blob/master/sound/soc/codecs/cs53l30.c" target="_blank">cs53l30.c</a>
+          </td>
+          <td>DTS 設 <code>format="dsp_a"</code>、<code>dai-tdm-slot-num=&lt;8&gt;</code>、<code>slot-width=&lt;32&gt;</code></td>
+        </tr>
+        <tr>
+          <td><strong><code>PGA2500</code></strong></td>
+          <td>
+            <a href="https://www.ti.com/lit/ds/symlink/pga2500.pdf" target="_blank">TI PGA2500 Datasheet (PDF)</a>
+          </td>
+          <td>免核心驅動；從 <code>spidev</code> / Python 送 16-bit SPI 控制字調增益</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
 </div>
 
 <script>

@@ -85,3 +85,17 @@
 ### 828mk3 Hybrid 偶發丟包 / 滋滋聲排查順序
 1. **確認 Clock Source**：在 CueMix / 驅動設定確認為 `Internal`（避免誤鎖到未接線的外部 ADAT/Word Clock 造成爆音）。
 2. **區分電腦緩衝 vs. 硬體電源／時鐘老化**：拔掉 USB/FireWire 單機測試 CueMix 直通監聽——若單機正常、接電腦才滋滋聲，為電腦 Buffer Size 過小或 USB DPC 延遲；若單機也出現偶發爆音，多為早期機型**電源板濾波電容老化**（導致類比與 PLL 供電紋波上升）或時脈晶振漂移所致。
+
+---
+
+## 七、開源 Linux 核心驅動範本、設備樹 (DTS) 與動態掛載（附 GitHub 連結）
+
+修改驅動與設備樹時 **不需每次重燒整台系統**：驅動可編譯為 `.ko` 動態模組透過 `sudo insmod` / `modprobe` 載入，DTS Overlay (`.dtbo`) 放入 `/boot/` 重開機即可生效。
+
+| 晶片型號 | Linux 主線開源驅動 / 實作範本（GitHub 直接連結） | 說明 |
+| :--- | :--- | :--- |
+| **`CS42448` / `CS42888`** | • [cs42xx8.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/cs42xx8.c)<br>• [cs42xx8-i2c.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/cs42xx8-i2c.c) / [cs42xx8-spi.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/cs42xx8-spi.c) | Linux 主線內建 ASoC 多通道 TDM 驅動 |
+| **`AD1938` / `AD193x`** | • [ad193x.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/ad193x.c)<br>• [ad193x-i2c.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/ad193x-i2c.c) / [ad193x-spi.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/ad193x-spi.c) | Linux 主線內建 AD1936/1937/1938 系列驅動 |
+| **`PCM1865` / `PCM186x`** | • [pcm186x.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/pcm186x.c)<br>• [pcm186x-i2c.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/pcm186x-i2c.c) / [pcm186x-spi.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/pcm186x-spi.c) | Linux 主線內建（含 PGA 增益控制） |
+| **`CS5368`** *(無需專用驅動)* | • 採萬用 **`simple-audio-card`** / **`audio-graph-card2`** 綁定 `SAI TDM`<br>• 參考同廠 I2C ADC：[cs53l30.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/cs53l30.c) | DTS 設定 `format = "dsp_a"`、`dai-tdm-slot-num = <8>`、`dai-tdm-slot-width = <32>`、`dai-tdm-slot-rx-mask = <0xff>` |
+| **`PGA2500`** *(SPI 數控前級)* | • 官方規格書：[TI PGA2500 Datasheet](https://www.ti.com/lit/ds/symlink/pga2500.pdf) | 無須寫核心驅動；直接由 `spidev` / Python / MCU 送出 16-bit SPI 控制字調增益（10–65 dB） |
