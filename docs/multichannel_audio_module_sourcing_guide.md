@@ -255,3 +255,32 @@
 ### 3. 繼電器 vs. 固態類比開關怎麼選？
 * **追求極致音質與零失真 → 選「微型訊號繼電器」（`Omron G6K-2F-Y` / `AXICOM IM03`）**：純機械鍍金接點（`0% THD`）、完全電氣隔離、耐壓高，缺點是切換時有輕微「喀噠」聲且需線圈電流（由 `ULN2803A` 驅動）。
 * **追求完全靜音與小體積 → 選「PhotoMOS 光耦 (`TLP241A`) + ±15V 類比開關 (`ADG1419`)」**：`TLP241A` 負責高壓 +48V 無聲切換，`ADG1419`（導通電阻僅 ~2Ω）負責隔直後的 PAD 與 Hi-Z 切換，完全無機械磨耗與噪音。
+
+---
+
+## 十一、VBAN 128 軌單一串流傳輸機制、Linux 開源原始碼實證與 Core3576 效能評估
+
+### 1. 原始碼實證：單一 VBAN 串流原生支援最高 256 軌（非 8 軌上限）
+過去「單一串流最多 8 軌」僅是舊版 Voicemeeter 的軟體限制；實際檢視 Linux 開源 VBAN 原始碼後確認，**VBAN 協定標頭原生支援單一 `stream_name` 攜帶 1～256 軌**，因此可直接用**單一串流名稱**對接 Windows **VB-Audio Matrix Coconut** 的 128 軌插槽：
+
+* **`VBAN_PROTOCOL_MAX_SIZE = 1464`**、**`VBAN_DATA_MAX_SIZE = 1436 bytes`**（扣除 28 bytes 標頭，確保不超過乙太網路 MTU 1500 不分片）。
+* **`VBAN_CHANNELS_MAX_NB = 256`**（標頭中 `uint8_t format_nbc` 為 8-bit 無號整數，填入 `通道數 - 1`）。
+* **多軌封包封裝邏輯（`vban_audio_flush_packets` / `vban_audio_receive`）**：
+  * 系統靠減少每個 UDP 封包的取樣點數（`format_nbs`）來容納更多通道。
+  * **128 軌 / 24-bit（3 bytes）**：1 幀佔 `128 × 3 = 384 bytes`，每個 UDP 封包塞 **3 個取樣點**（`1152 bytes`，`format_nbc = 127`、`format_nbs = 2`）依 `n_frames` 連續發送。
+  * 接收端讀取 `format_nbc + 1` 後，自動依 `stream_name` 建立 128 軌輸入埠寫入環狀緩衝區（`spa_ringbuffer`）。
+
+### 2. 參考開源程式庫與代碼連結
+| 專案 / 模組 | 倉庫連結 | 關鍵檢查檔案與用途 |
+| :--- | :--- | :--- |
+| **PipeWire 官方 VBAN 模組** *(推薦實戰使用)* | [PipeWire (GitLab)](https://gitlab.freedesktop.org/pipewire/pipewire/-/tree/master/src/modules) | • [`module-vban/vban.h`](https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/master/src/modules/module-vban/vban.h)（協定定義 `256` 軌）<br>• [`module-vban/audio.c`](https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/master/src/modules/module-vban/audio.c)（封包打包與接收）<br>• [`module-vban-send.c`](https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/master/src/modules/module-vban-send.c) / [`module-vban-recv.c`](https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/master/src/modules/module-vban-recv.c) |
+| **quiniouben/vban** *(獨立 CLI 工具)* | [quiniouben/vban (GitHub)](https://github.com/quiniouben/vban) | • `src/vban/vban.h`、`src/common/packet.c`、`src/emitter/main.c`、`src/receptor/main.c`（`vban_emitter` / `vban_receptor`） |
+
+### 3. Luckfox Core3576 效能評估與 DAW 矩陣路由參考
+* **硬體能力**：RK3576（`4× Cortex-A72 @ 2.2–2.3 GHz` + `4× Cortex-A53` + **雙 1000M Gigabit 有線網口**）。
+* **48 kHz / 24-bit / 128 軌單串流負載**：每秒約 `48,000 / 3 = 16,000` 個 UDP 封包、總頻寬約 **185 Mbps**（僅佔 Gigabit 網口約 18.5%）。在**有線乙太網路**下可穩定運行；若同時需跑大量 Ardour 插件或 CamillaDSP FIR 運算，可改用 **16-bit（每包 5 點 → 9,600 pkt/s）** 或拆為 **2 條 64 軌串流**進一步降低中斷負擔。
+* **Linux DAW 網格矩陣（Routing Matrix）視覺參考**：
+  * [Ardour Audio Connection Matrix (快捷鍵 `P`) 截圖搜尋](https://www.google.com/search?tbm=isch&q=Ardour+Audio+Connections+Matrix+Patchbay)
+  * [REAPER Routing Matrix (快捷鍵 `Alt+R`) 截圖搜尋](https://www.google.com/search?tbm=isch&q=REAPER+Routing+Matrix)
+  * [CamillaDSP GUI Mixer Matrix 截圖搜尋](https://www.google.com/search?tbm=isch&q=CamillaDSP+GUI+Mixer+Matrix)
+  * [qpwgraph (PipeWire 圖形跳線) 截圖搜尋](https://www.google.com/search?tbm=isch&q=qpwgraph+PipeWire+patchbay)

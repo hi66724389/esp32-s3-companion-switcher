@@ -892,6 +892,59 @@
     </table>
   </section>
 
+  <!-- Section 11: VBAN 128-ch Single Stream Protocol, Linux Source & Core3576 Evaluation -->
+  <section class="section">
+    <h2>十一、VBAN 128 軌單一串流傳輸機制、Linux 開源原始碼實證與 Core3576 效能評估</h2>
+    <p class="section-desc">直接檢視 <code>quiniouben/vban</code> 與 PipeWire 官方 <code>module-vban</code> 原始碼，確認單一串流原生支援 1–256 軌，可直接對接 Windows <strong>VB-Audio Matrix Coconut</strong> 128 軌插槽。</p>
+
+    <div class="info-box">
+      <h3>1. 協定與封包封裝實證（<code>vban.h</code> / <code>audio.c</code>）</h3>
+      <ul>
+        <li><strong>單一串流上限 256 軌</strong>：<code>VBAN_CHANNELS_MAX_NB = 256</code>，標頭 <code>uint8_t format_nbc</code> 為 8-bit 無號整數（通道數 - 1），單一 <code>stream_name</code> 即可直接傳送 128 軌。</li>
+        <li><strong>1436 bytes UDP 上限封裝法</strong>：為避免超過 MTU 1500，傳送端 (<code>vban_audio_flush_packets</code>) 動態減少每包取樣點數 (<code>format_nbs</code>)。以 <strong>128 軌 / 24-bit</strong>（每幀 384 bytes）為例，每個 UDP 封包塞 <strong>3 個取樣點</strong>（<code>1152 bytes</code>）連續發送。</li>
+        <li><strong>Core3576 效能評估</strong>：48 kHz / 24-bit / 128 軌約 <strong>16,000 pkt/s</strong>、<strong>185 Mbps</strong>（僅佔 Gigabit 網口 18.5%），4×A72 + 雙 1000M 有線網口可穩定運行；若要再降中斷率可改 16-bit 或拆雙 64 軌。</li>
+      </ul>
+    </div>
+
+    <h3>2. 參考開源程式庫與矩陣路由截圖連結</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>項目</th>
+          <th>開源倉庫 / 檢視連結</th>
+          <th>說明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>PipeWire <code>module-vban</code></strong> *(推薦)*</td>
+          <td>
+            <a href="https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/master/src/modules/module-vban/vban.h" target="_blank">vban.h</a> ·
+            <a href="https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/master/src/modules/module-vban/audio.c" target="_blank">audio.c</a> ·
+            <a href="https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/master/src/modules/module-vban-send.c" target="_blank">module-vban-send.c</a> ·
+            <a href="https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/master/src/modules/module-vban-recv.c" target="_blank">module-vban-recv.c</a>
+          </td>
+          <td>PipeWire 原生 VBAN 收發模組，支援 <code>audio.channels = 128</code> 單一串流對接 Matrix Coconut</td>
+        </tr>
+        <tr>
+          <td><strong><code>quiniouben/vban</code></strong></td>
+          <td><a href="https://github.com/quiniouben/vban" target="_blank">quiniouben/vban (GitHub)</a></td>
+          <td>獨立 CLI 工具（<code>vban_emitter</code> / <code>vban_receptor</code>），<code>src/vban/vban.h</code> 同樣定義 256 軌上限</td>
+        </tr>
+        <tr>
+          <td><strong>矩陣路由介面截圖參考</strong></td>
+          <td>
+            <a href="https://www.google.com/search?tbm=isch&amp;q=Ardour+Audio+Connections+Matrix+Patchbay" target="_blank">Ardour Matrix</a> ·
+            <a href="https://www.google.com/search?tbm=isch&amp;q=REAPER+Routing+Matrix" target="_blank">REAPER Matrix</a> ·
+            <a href="https://www.google.com/search?tbm=isch&amp;q=CamillaDSP+GUI+Mixer+Matrix" target="_blank">CamillaDSP Matrix</a> ·
+            <a href="https://www.google.com/search?tbm=isch&amp;q=qpwgraph+PipeWire+patchbay" target="_blank">qpwgraph</a>
+          </td>
+          <td>DAW 網格矩陣（<code>P</code> / <code>Alt+R</code>）與 Linux PipeWire 視覺跳線實機截圖</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
 </div>
 
 <script>
