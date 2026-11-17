@@ -64,3 +64,17 @@
   * 跑在 **Layer 2**，強制需要支援 AVB 的專用交換機，且 Windows 原生不支援（主要為 macOS 與特定調音台）。
   * **開發參考**：`scrambletools/esp_avb`（可參考其 gPTP 時脈同步與封包排程實作邏輯）。
 
+---
+
+## 6. Luckfox Linux 平台評估與 RK3576 SAI 規格
+* **Luckfox Lyra (RK3506G2)**：內建 5 組 SAI (`SAI0`~`SAI4`) + Matrix IO、雙 USB 2.0 OTG、雙 100M RMII；可跑 Linux `f_uac2` + `CamillaDSP` + `aes67-linux-daemon`，並可透過 `SAI2~4` 接 `CS8422` 實作最多 3 組 AES/EBU (XLR)。
+* **Luckfox Core3566 (RK3566)**：內建 `I2S0`~`I2S3`（對外僅 `I2S1` 支援 8ch TDM，`I2S2/3` 僅 2ch），不適合直接原生接 32×32 以上類比；定位為 1000M Gigabit AES67 網路中樞，或透過 PCIe 接 FPGA 擴充。
+* **Luckfox Core3576 (RK3576) — 大通道免 FPGA 旗艦方案**：
+  * **音訊介面（共 5 組 SAI：`SAI0` ~ `SAI4`）**，全部支援 I2S / TDM / PCM（最高 32-bit / 192kHz）：
+    * **`SAI0`**：4 條 TX / 4 條 RX 資料線（TDM8 = 32I/32O；TDM16 = 64I/64O）
+    * **`SAI1`**：4 條 TX / 4 條 RX 資料線（TDM8 = 32I/32O；TDM16 = 64I/64O）
+    * **`SAI2 ~ SAI4`**：各 1 條 TX / 1 條 RX 資料線（可接 AES/EBU XLR 或 S/PDIF；部分 SAI 內部可路由給 HDMI 音訊）
+  * **優勢**：光靠 `SAI0 + SAI1`（合計 8 TX + 8 RX）跑 TDM8 即可直連 **64×64**、跑 TDM16 可直連 **128×128**，免去 FPGA；搭配 **USB 3.2 Gen 1 (5Gbps)** 與 **雙 1000M Gigabit 網口**，前後端皆無頻寬瓶頸。
+  * **底板設計注意**：需對照官方 Pinout，確認 `SAI0` / `SAI1` 腳位未與 eMMC、雙網口或 MIPI 螢幕等介面復用衝突。
+
+
