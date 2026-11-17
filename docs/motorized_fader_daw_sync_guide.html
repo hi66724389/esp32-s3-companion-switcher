@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>電動推桿接開發板與 Ardour / CamillaDSP 雙向同步架構指南</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f1f5f9;
+      color: #0f172a;
+      font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+      line-height: 1.55;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 12px 20px;
+      border-bottom: 2px solid #38bdf8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    header h1 { font-size: 16px; margin: 0; color: #38bdf8; }
+    .sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+    .btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #22c55e;
+      color: #052e16;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .wrap { max-width: 1240px; margin: 18px auto; padding: 0 16px 32px; }
+    .card {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+    }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: #0f172a;
+      border-left: 5px solid #0284c7;
+      padding-left: 10px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+    th, td { border: 1px solid #94a3b8; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #e2e8f0; font-weight: 700; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11.5px; font-weight: 700; }
+    .b-g { background: #dcfce7; color: #166534; }
+    .b-r { background: #fee2e2; color: #991b1b; }
+    .b-o { background: #ffedd5; color: #9a3412; }
+    .b-b { background: #dbeafe; color: #1e40af; }
+    code { background: #e2e8f0; padding: 1px 5px; border-radius: 4px; font-family: Consolas, Monaco, monospace; font-size: 12px; }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 12.5px;
+      overflow-x: auto;
+      margin: 8px 0 0;
+    }
+    .sim-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 10px;
+    }
+    @media (max-width: 820px) { .sim-box { grid-template-columns: 1fr; } }
+    @media print {
+      header { display: none !important; }
+      body { background: #ffffff; }
+      .card { break-inside: avoid; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>電動推桿接開發板與 Ardour / CamillaDSP 雙向同步架構指南</h1>
+    <div class="sub">ALPS RSA0N11M9 接腳拆解 · ADS1115 ADC + DRV8833 PWM + Touch Sense · OSC / Mackie / WebSocket 雙向橋接</div>
+  </div>
+  <button class="btn" onclick="window.print()">🖨️ 列印 / 存成 PDF</button>
+</header>
+
+<div class="wrap">
+
+  <!-- 1. GPIO 腳位釐清 -->
+  <section class="card">
+    <h2>一、關鍵觀念：能只用普通「GPIO」接電動推桿嗎？</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:24%">推桿訊號部位</th>
+          <th style="width:18%">能不能接普通 GPIO？</th>
+          <th style="width:58%">正確硬體接法與工程原因</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. 推桿滑動位置</strong><br><code>10kΩ</code> 線性電位器</td>
+          <td><span class="badge b-r">❌ 不能用數位 GPIO</span></td>
+          <td>輸出為 <code>0V ~ 3.3V</code> 連續類比電壓；必須進 <strong>ADC 腳位</strong>（開發板 <code>SARADC</code> 或外掛 I2C <code>ADS1115</code> 16-bit ADC），才能讀出精確推桿百分比。</td>
+        </tr>
+        <tr>
+          <td><strong>2. 推桿直流馬達</strong><br><code>M+ / M-</code> (約 9V)</td>
+          <td><span class="badge b-r">❌ 嚴禁 GPIO 直推</span></td>
+          <td>馬達啟動電流大，GPIO 直推必燒晶片。需用 <strong>2 支 PWM GPIO</strong> 進 <strong><code>DRV8833</code> H 橋馬達驅動模組</strong> 控制正反轉與推力大小。</td>
+        </tr>
+        <tr>
+          <td><strong>3. 觸摸感應軌</strong><br><code>Touch Sense</code></td>
+          <td><span class="badge b-o">⚠️ 經觸摸 IC 進 GPIO</span></td>
+          <td>經 <code>TTP223</code> / <code>AT42QT1010</code> 電容感應模組轉為 <code>0/1</code> 進 GPIO；人手摸上推桿時立刻暫停馬達 PID，防止搶手。</td>
+        </tr>
+        <tr>
+          <td><strong>4. 軌道 VU 燈條</strong><br><code>SK6812 / WS2812</code></td>
+          <td><span class="badge b-g">✅ 單線數位 GPIO</span></td>
+          <td>直接收 Ardour OSC <code>/strip/meter</code> 或 CamillaDSP 音量表數值即時亮燈。</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 2. 雙向資料流 SVG -->
+  <section class="card">
+    <h2>二、雙向控制與資料流架構圖（硬體 ⇄ 背景橋接程式 ⇄ DAW）</h2>
+    <svg viewBox="0 0 1160 230" style="width:100%;height:auto;background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;" xmlns="http://www.w3.org/2000/svg">
+      <!-- Box 1: Hardware -->
+      <rect x="20" y="20" width="290" height="190" rx="8" fill="#ffffff" stroke="#0284c7" stroke-width="2"/>
+      <rect x="20" y="20" width="290" height="34" rx="8" fill="#0284c7"/>
+      <text x="165" y="42" fill="#fff" font-size="13.5" font-weight="700" text-anchor="middle">1. 實體推桿 (ALPS RSA0N11M9)</text>
+      <text x="36" y="78" fill="#0f172a" font-size="12.5">• 10kΩ 電位器 (0~3.3V) ➔ ADC</text>
+      <text x="36" y="106" fill="#0f172a" font-size="12.5">• Touch 感應軌 ➔ TTP223 ➔ GPIO</text>
+      <text x="36" y="134" fill="#0f172a" font-size="12.5">• DC 馬達 M+/M- ◀ DRV8833 (9V)</text>
+      <text x="36" y="162" fill="#0f172a" font-size="12.5">• SK6812 RGB 燈帶 ◀ VU 音量回傳</text>
+
+      <!-- Arrows 1 <-> 2 -->
+      <line x1="310" y1="80" x2="395" y2="80" stroke="#16a34a" stroke-width="2.5"/>
+      <polygon points="395,80 386,75 386,85" fill="#16a34a"/>
+      <text x="352" y="72" fill="#166534" font-size="11" font-weight="700" text-anchor="middle">ADC+Touch</text>
+
+      <line x1="395" y1="145" x2="310" y2="145" stroke="#d97706" stroke-width="2.5"/>
+      <polygon points="310,145 319,140 319,150" fill="#d97706"/>
+      <text x="352" y="137" fill="#9a3412" font-size="11" font-weight="700" text-anchor="middle">PWM+LED</text>
+
+      <!-- Box 2: Bridge Daemon -->
+      <rect x="398" y="20" width="355" height="190" rx="8" fill="#ffffff" stroke="#7c3aed" stroke-width="2"/>
+      <rect x="398" y="20" width="355" height="34" rx="8" fill="#7c3aed"/>
+      <text x="575" y="42" fill="#fff" font-size="13.5" font-weight="700" text-anchor="middle">2. Luckfox 背景橋接程式 (200–500Hz)</text>
+      <text x="415" y="78" fill="#0f172a" font-size="12.5" font-weight="700">上傳轉換 (Hardware ➔ Software)：</text>
+      <text x="415" y="98" fill="#334155" font-size="12">ADC 讀值濾波 ➔ 轉發 OSC / MIDI / WebSocket</text>
+      <text x="415" y="134" fill="#0f172a" font-size="12.5" font-weight="700">回授驅動 (Software ➔ Hardware)：</text>
+      <text x="415" y="154" fill="#334155" font-size="12">收軟體目標值 ➔ 確認 Touch=0 ➔ PID 算 PWM</text>
+      <text x="415" y="176" fill="#334155" font-size="12">並把 dB 音量電平同步推給 VU RGB 燈條</text>
+
+      <!-- Arrows 2 <-> 3 -->
+      <line x1="753" y1="80" x2="840" y2="80" stroke="#2563eb" stroke-width="2.5"/>
+      <polygon points="840,80 831,75 831,85" fill="#2563eb"/>
+      <text x="796" y="72" fill="#1e40af" font-size="11" font-weight="700" text-anchor="middle">控制指令</text>
+
+      <line x1="840" y1="145" x2="753" y2="145" stroke="#9333ea" stroke-width="2.5"/>
+      <polygon points="753,145 762,140 762,150" fill="#9333ea"/>
+      <text x="796" y="137" fill="#6b21a8" font-size="11" font-weight="700" text-anchor="middle">雙向回傳</text>
+
+      <!-- Box 3: DAW / DSP -->
+      <rect x="843" y="20" width="297" height="190" rx="8" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+      <rect x="843" y="20" width="297" height="34" rx="8" fill="#16a34a"/>
+      <text x="991" y="42" fill="#fff" font-size="13.5" font-weight="700" text-anchor="middle">3. 混音與 DAW 軟體端</text>
+      <text x="860" y="80" fill="#0f172a" font-size="12.5" font-weight="700">• Ardour DAW (OSC UDP :3819)</text>
+      <text x="868" y="100" fill="#334155" font-size="12">/strip/fader · /strip/meter</text>
+      <text x="860" y="132" fill="#0f172a" font-size="12.5" font-weight="700">• Ardour / 通用 (Mackie MIDI)</text>
+      <text x="868" y="152" fill="#334155" font-size="12">14-bit Pitch Bend 雙向推桿</text>
+      <text x="860" y="184" fill="#0f172a" font-size="12.5" font-weight="700">• CamillaDSP (WebSocket :1234)</text>
+    </svg>
+
+    <!-- Interactive PID + Touch Sense Simulator -->
+    <div class="sim-box">
+      <div>
+        <div style="font-weight:700;font-size:13.5px;margin-bottom:6px;">互動測試：模擬「Touch 防搶手」與「OSC 雙向同步」</div>
+        <div style="font-size:12.5px;color:#475569;margin-bottom:8px;">
+          切換是否握住推桿（Touch Sense），並點擊右側「軟體移動軌道」觀察馬達 PID 是否自動帶動或讓位給人手：
+        </div>
+        <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;cursor:pointer;padding:6px 10px;border-radius:6px;border:1px solid #94a3b8;background:#fff;">
+          <input type="checkbox" id="sim-touch" />
+          <span>✋ 模擬人手握住推桿 (Touch Sense = 1)</span>
+        </label>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn" style="background:#0284c7;color:#fff;border-color:#0369a1;" onclick="simSoftwareMove(0.85)">軟體拉到 85% (+3dB)</button>
+          <button type="button" class="btn" style="background:#0284c7;color:#fff;border-color:#0369a1;" onclick="simSoftwareMove(0.20)">軟體拉到 20% (-24dB)</button>
+          <button type="button" class="btn" style="background:#64748b;color:#fff;border-color:#475569;" onclick="simSoftwareMove(0.00)">軟體歸零 (MUTE)</button>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;">
+          <span>實體推桿位置：<span id="sim-pos-txt">50%</span></span>
+          <span id="sim-state" style="color:#0284c7;">PID 待命中</span>
+        </div>
+        <input id="sim-fader" type="range" min="0" max="100" value="50" style="width:100%;margin:10px 0;" />
+        <pre id="sim-log" style="margin:0;">OSC ➔ /strip/fader 1 0.50 (等待操作...)</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 協議對照表 -->
+  <section class="card">
+    <h2>三、Ardour / CamillaDSP 協議規格對照與 4 路測試 BOM</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:20%">目標與協議</th>
+          <th style="width:18%">埠號 / 介面</th>
+          <th style="width:31%">硬體 ➔ 軟體指令</th>
+          <th style="width:31%">軟體 ➔ 馬達 / LED 回傳</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Ardour OSC</strong><br><span class="badge b-g">最推薦</span></td>
+          <td>UDP <code>3819</code><br>(本機 <code>127.0.0.1</code>)</td>
+          <td><code>/strip/fader 1 0.75</code><br><code>/strip/mute 1 1</code></td>
+          <td>開啟 OSC Feedback 後自動推回 <code>/strip/fader</code>（推動馬達）與 <code>/strip/meter</code>（亮起 VU 燈條）</td>
+        </tr>
+        <tr>
+          <td><strong>Mackie Control</strong></td>
+          <td>USB-MIDI / ALSA 虛擬埠</td>
+          <td>14-bit Pitch Bend (16,384 階高精度推桿)</td>
+          <td>DAW 自動發回相同 Pitch Bend 驅動馬達歸位</td>
+        </tr>
+        <tr>
+          <td><strong>CamillaDSP</strong></td>
+          <td>WebSocket TCP <code>1234</code></td>
+          <td><code>SetVolume</code> / <code>SetMixer</code></td>
+          <td>切換 Preset 或網頁拖動時輪詢更新目標值</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table style="margin-top:14px;">
+      <thead>
+        <tr>
+          <th style="width:22%">最小驗證 BOM 元件</th>
+          <th style="width:28%">推薦型號</th>
+          <th style="width:12%">4 路用量</th>
+          <th style="width:38%">接線注意重點</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>電動推桿本體</td>
+          <td><code>ALPS RSA0N11M9</code> (100mm, B10K)</td>
+          <td>4 支</td>
+          <td>馬達建議供 9V DC；電位器供 3.3V 進 ADC</td>
+        </tr>
+        <tr>
+          <td>馬達驅動板</td>
+          <td><code>DRV8833</code> 雙 H 橋模組</td>
+          <td>2 片</td>
+          <td>1 片可推 2 支馬達，每支佔用 2 支 PWM GPIO</td>
+        </tr>
+        <tr>
+          <td>位置讀取 ADC</td>
+          <td><code>ADS1115</code> 16-bit 4路 I2C ADC</td>
+          <td>1 片</td>
+          <td>若開發板內建 ADC 腳不夠或有雜訊，用 1 片即讀滿 4 路</td>
+        </tr>
+        <tr>
+          <td>觸摸感應模組</td>
+          <td><code>TTP223</code> / <code>AT42QT1010</code></td>
+          <td>4 顆</td>
+          <td>接推桿 Touch 軌，轉成乾淨 <code>0/1</code> GPIO 防搶手</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+</div>
+
+<script>
+  const faderEl = document.getElementById('sim-fader');
+  const touchEl = document.getElementById('sim-touch');
+  const posTxt = document.getElementById('sim-pos-txt');
+  const stateEl = document.getElementById('sim-state');
+  const logEl = document.getElementById('sim-log');
+  let animId = null;
+
+  faderEl.addEventListener('input', () => {
+    const pct = Number(faderEl.value);
+    posTxt.textContent = pct + '%';
+    stateEl.textContent = touchEl.checked ? '✋ 人手控制中 (馬達 PWM 關閉)' : '手動移動';
+    logEl.textContent = `硬體上傳 OSC ➔ /strip/fader 1 ${(pct / 100).toFixed(2)}`;
+  });
+
+  function simSoftwareMove(targetRatio) {
+    const targetPct = Math.round(targetRatio * 100);
+    if (touchEl.checked) {
+      stateEl.textContent = '✋ Touch=1！拒絕馬達介入（防搶手）';
+      logEl.textContent = `軟體收到目標 ${targetPct}%，但因偵測到人手握住推桿，DRV8833 PWM 維持關閉！`;
+      return;
+    }
+    if (animId) cancelAnimationFrame(animId);
+    stateEl.textContent = '⚙️ DRV8833 PID 馬達自動歸位中...';
+    const step = () => {
+      if (touchEl.checked) {
+        stateEl.textContent = '✋ 人手介入，馬達立即停止！';
+        return;
+      }
+      const cur = Number(faderEl.value);
+      const diff = targetPct - cur;
+      if (Math.abs(diff) > 1) {
+        const next = cur + (Math.round(diff * 0.25) || Math.sign(diff));
+        faderEl.value = next;
+        posTxt.textContent = next + '%';
+        animId = requestAnimationFrame(step);
+      } else {
+        faderEl.value = targetPct;
+        posTxt.textContent = targetPct + '%';
+        stateEl.textContent = '✅ 已到達目標位置 (死區鎖定)';
+        logEl.textContent = `軟體回傳 OSC ➔ /strip/fader 1 ${targetRatio.toFixed(2)} | 馬達已定位`;
+      }
+    };
+    animId = requestAnimationFrame(step);
+  }
+</script>
+</body>
+</html>

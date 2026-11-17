@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>多通道音訊模組選型與採購搜尋指南（8 路以上 TDM 模組化原型專用）</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f1f5f9;
+      color: #0f172a;
+      font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+      line-height: 1.55;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 12px 20px;
+      border-bottom: 2px solid #f59e0b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    header h1 {
+      font-size: 16px;
+      margin: 0;
+      color: #fbbf24;
+    }
+    .header-sub {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #e2e8f0;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { border-color: #fbbf24; color: #fff; }
+    .btn.active { background: #f59e0b; color: #0f172a; border-color: #f59e0b; }
+    .btn-print {
+      background: #22c55e;
+      color: #052e16;
+      border-color: #16a34a;
+      font-weight: 700;
+    }
+    .btn-print:hover { background: #4ade80; color: #052e16; }
+    .wrap {
+      max-width: 1280px;
+      margin: 18px auto;
+      padding: 0 16px 32px;
+    }
+    .card {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+    }
+    .card.hidden { display: none; }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: #0f172a;
+      border-left: 5px solid #d97706;
+      padding-left: 10px;
+    }
+    .note {
+      font-size: 12.5px;
+      color: #475569;
+      margin: 0 0 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    th, td {
+      border: 1px solid #94a3b8;
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #e2e8f0;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .b-g { background: #dcfce7; color: #166534; }
+    .b-b { background: #dbeafe; color: #1e40af; }
+    .b-p { background: #f3e8ff; color: #6b21a8; }
+    .b-o { background: #ffedd5; color: #9a3412; }
+    .kw-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin: 2px 4px 2px 0;
+      padding: 3px 8px;
+      border-radius: 5px;
+      border: 1px solid #cbd5e1;
+      background: #f1f5f9;
+      color: #0f172a;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .kw-btn:hover {
+      background: #e0f2fe;
+      border-color: #0284c7;
+      color: #0369a1;
+    }
+    .kw-btn.copied {
+      background: #dcfce7;
+      border-color: #16a34a;
+      color: #166534;
+    }
+    .checklist {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .check-item input {
+      margin-top: 3px;
+      transform: scale(1.15);
+      cursor: pointer;
+    }
+    .check-item.done {
+      background: #f0fdf4;
+      border-color: #86efac;
+      color: #166534;
+    }
+    code {
+      background: #e2e8f0;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 12px;
+    }
+    @media print {
+      header { display: none !important; }
+      body { background: #ffffff; }
+      .wrap { margin: 0; padding: 0; max-width: 100%; }
+      .card { break-inside: avoid; box-shadow: none; border-color: #94a3b8; }
+      .card.hidden { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>多通道音訊模組選型與採購搜尋指南（8 路以上 TDM 模組化原型專用）</h1>
+    <div class="header-sub">免自行畫 PCB · 現成模組板跳線對接 Luckfox (Core3576 / Lyra) 或 ESP32-P4 · 點擊關鍵字可直接複製搜尋</div>
+  </div>
+  <div class="header-actions">
+    <button class="btn active" data-filter="all">全部顯示</button>
+    <button class="btn" data-filter="routes">決策路線</button>
+    <button class="btn" data-filter="adc">純輸入 ADC</button>
+    <button class="btn" data-filter="dac">純輸出 DAC</button>
+    <button class="btn" data-filter="codec">多合一 Codec</button>
+    <button class="btn" data-filter="preamp">前級放大</button>
+    <button class="btn" data-filter="clock">主時鐘模組</button>
+    <button class="btn" data-filter="check">採購檢查點</button>
+    <button class="btn btn-print" onclick="window.print()">🖨️ 列印 / 存成 PDF</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 1. 三種路線 -->
+  <section class="card" data-cat="routes">
+    <h2>一、快速決策：三種「8 路以上」模組化拼裝路線</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%">方案路線</th>
+          <th style="width:20%">輸入晶片 (ADC)</th>
+          <th style="width:20%">輸出晶片 (DAC)</th>
+          <th style="width:14%">實際通道規模</th>
+          <th style="width:24%">優勢與採購難度</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge b-g">路線 1：最快上手（最推薦）</span></td>
+          <td><strong><code>2× AD1938</code></strong> 或 <strong><code>2× CS42448</code></strong></td>
+          <td>同左（Codec 內建 DAC）</td>
+          <td><strong>8進 16出</strong> (<code>2× AD1938</code>)<br><strong>12進 16出</strong> (<code>2× CS42448</code>)</td>
+          <td>淘寶／AliExpress 現成小板最多、價格最低；<code>48kHz / 24-bit</code> 下單線 TDM16 即可跑滿</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-b">路線 2：輸入／輸出分離</span></td>
+          <td><strong><code>CS5368</code></strong> (8ch) 或 <strong><code>2× PCM1865</code></strong> (4ch×2)</td>
+          <td><strong><code>ADAU1966A</code></strong> (16ch) 或 <strong><code>ES9080</code> / <code>AK4458</code></strong> (8ch)</td>
+          <td><strong>8進 8出 ～ 8進 16出</strong></td>
+          <td>輸入與輸出各自走獨立 SAI/TDM 匯流排，徹底避開 Codec 通道與模式限制</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-p">路線 3：頂級旗艦規格</span></td>
+          <td><strong><code>AK5578</code></strong> (8ch, 32-bit, 121dB)</td>
+          <td><strong><code>ADAU1966A</code></strong> (16ch) 或 <strong><code>ES9080</code></strong> (8ch)</td>
+          <td><strong>8進 8出 ～ 16進 16出</strong></td>
+          <td>動態範圍最強，但現成平價小板較少，多需買官方評估板或找開源子板交 SMT 代貼</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 2. 純輸入 ADC -->
+  <section class="card" data-cat="adc">
+    <h2>二、8 路以上純輸入（ADC）晶片與搜尋關鍵字</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:18%">晶片型號</th>
+          <th style="width:11%">單片輸入數</th>
+          <th style="width:14%">位元 / 取樣率</th>
+          <th style="width:29%">核心規格亮點</th>
+          <th style="width:28%">點擊複製搜尋關鍵字</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Cirrus Logic <code>CS5368</code></strong></td>
+          <td><strong>8 路</strong></td>
+          <td>24-bit / 192kHz</td>
+          <td><code>114 dB DR</code>；經典廣電 8ch TDM8/16 ADC；原廠板 <code>CDB5368</code></td>
+          <td>
+            <button class="kw-btn" data-kw="CS5368 TDM ADC board">CS5368 TDM ADC board</button>
+            <button class="kw-btn" data-kw="CDB5368">CDB5368</button>
+            <button class="kw-btn" data-kw="CS5368 8路 ADC 模組">CS5368 8路 ADC 模組</button>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>AKM <code>AK5578</code></strong></td>
+          <td><strong>8 路</strong></td>
+          <td>32-bit / 768kHz</td>
+          <td><code>121 dB DR</code>；支援 <code>TDM128/256/512</code> 串接</td>
+          <td>
+            <button class="kw-btn" data-kw="AK5578 8 channel ADC board">AK5578 8 channel ADC board</button>
+            <button class="kw-btn" data-kw="AK5578EN TDM module">AK5578EN TDM module</button>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>TI <code>PCM1865</code></strong><br><span class="badge b-g">買 2 片串接</span></td>
+          <td><strong>4 路</strong><br><small>(2片=8路)</small></td>
+          <td>24-bit / 192kHz</td>
+          <td><code>110 dB SNR</code>；<strong>內建可程式前級 PGA</strong>（免外接複雜類比放大即可測麥克風/Line）、支援 TDM &amp; I2C/SPI；原廠板 <code>PCM1865EVM</code></td>
+          <td>
+            <button class="kw-btn" data-kw="PCM1865 4 channel ADC module">PCM1865 4 channel ADC module</button>
+            <button class="kw-btn" data-kw="PCM1865 TDM board">PCM1865 TDM board</button>
+            <button class="kw-btn" data-kw="PCM1865 四路 音頻採集">PCM1865 四路 音頻採集</button>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>ESS <code>ES9842 PRO</code></strong><br><span class="badge b-b">買 2 片串接</span></td>
+          <td><strong>4 路</strong><br><small>(2片=8路)</small></td>
+          <td>32-bit / 768kHz</td>
+          <td><code>122 dB DR</code>；超高解析、TDM 主/從可調</td>
+          <td>
+            <button class="kw-btn" data-kw="ES9842 ADC board TDM">ES9842 ADC board TDM</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 3. 純輸出 DAC -->
+  <section class="card" data-cat="dac">
+    <h2>三、8 路以上純輸出（DAC）晶片與搜尋關鍵字</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:18%">晶片型號</th>
+          <th style="width:11%">單片輸出數</th>
+          <th style="width:14%">位元 / 取樣率</th>
+          <th style="width:29%">核心規格亮點</th>
+          <th style="width:28%">點擊複製搜尋關鍵字</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>ADI <code>ADAU1966A</code></strong></td>
+          <td><strong>16 路</strong></td>
+          <td>24-bit / 192kHz</td>
+          <td><code>118 dB SNR</code>；TDM8 / TDM16；原廠板 <code>EVAL-ADAU1966AZ</code>（自帶 8× 3.5mm TRS）</td>
+          <td>
+            <button class="kw-btn" data-kw="EVAL-ADAU1966AZ">EVAL-ADAU1966AZ</button>
+            <button class="kw-btn" data-kw="ADAU1966 16 channel DAC board">ADAU1966 16 channel DAC board</button>
+            <button class="kw-btn" data-kw="ADAU1966A TDM 模組">ADAU1966A TDM 模組</button>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>ESS <code>ES9080</code></strong></td>
+          <td><strong>8 路</strong></td>
+          <td>32-bit / 768kHz</td>
+          <td>高動態範圍 8 聲道純 DAC，支援 TDM/I2S</td>
+          <td>
+            <button class="kw-btn" data-kw="ES9080 8 channel DAC board">ES9080 8 channel DAC board</button>
+            <button class="kw-btn" data-kw="ES9080Q TDM module">ES9080Q TDM module</button>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>AKM <code>AK4458</code></strong></td>
+          <td><strong>8 路</strong></td>
+          <td>32-bit / 768kHz</td>
+          <td>8 聲道 DAC，支援 TDM8/16</td>
+          <td>
+            <button class="kw-btn" data-kw="AK4458 8 channel DAC board">AK4458 8 channel DAC board</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 4. 多合一 Codec -->
+  <section class="card" data-cat="codec">
+    <h2>四、高性價比「多合一 Codec（輸入＋輸出）」現成模組</h2>
+    <p class="note">註：以下三顆單片皆為非對稱通道，需對稱 <code>8進8出</code> 時買 2 片並接或 Daisy-Chain。</p>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:18%">晶片型號</th>
+          <th style="width:14%">輸入 / 輸出</th>
+          <th style="width:40%">實務特性與避坑提醒</th>
+          <th style="width:28%">點擊複製搜尋關鍵字</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>ADI <code>AD1938</code></strong></td>
+          <td><strong>4 進 8 出</strong><br><small>(2片串接 = 8進16出)</small></td>
+          <td>
+            • 淘寶平價成品板最多，常內建 STM32 透過跳線帽自動配置 SPI<br>
+            • <strong>模式差異</strong>：固定 <strong>24-bit</strong>，差異在單線最高取樣率（TDM16 限 <code>48kHz</code>、TDM8 可到 <code>96kHz</code>、TDM4/Dual-Line 可到 <code>192kHz</code>）<br>
+            • 若遇輸入錯位雜音，主控端反轉 <code>BCLK</code> 極性即可
+          </td>
+          <td>
+            <button class="kw-btn" data-kw="AD1938 4輸入8輸出">AD1938 4輸入8輸出</button>
+            <button class="kw-btn" data-kw="AD1938 TDM SPI 模組">AD1938 TDM SPI 模組</button>
+            <button class="kw-btn" data-kw="AD1938 codec board">AD1938 codec board</button>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Cirrus Logic <code>CS42448</code></strong></td>
+          <td><strong>6 進 8 出</strong><br><small>(2片 = 12進16出)</small></td>
+          <td>
+            • 單片綜合通道數最高，I2C 控制 + TDM8/16<br>
+            • Teensy / 開源音響社群有大量驗證過的 6I/8O 子板
+          </td>
+          <td>
+            <button class="kw-btn" data-kw="CS42448 audio board">CS42448 audio board</button>
+            <button class="kw-btn" data-kw="CS42448 TDM 模組">CS42448 TDM 模組</button>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>TI <code>PCM3168A</code></strong></td>
+          <td><strong>6 進 8 出</strong><br><small>(2片 = 12進16出)</small></td>
+          <td>
+            • 24-bit / 192kHz，部分 DIY 工作室有做帶 RCA/TRS 的子板
+          </td>
+          <td>
+            <button class="kw-btn" data-kw="PCM3168A TDM module">PCM3168A TDM module</button>
+            <button class="kw-btn" data-kw="PCM3168A 音頻模組">PCM3168A 音頻模組</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 5. 主時鐘模組推薦 -->
+  <section class="card" data-cat="clock">
+    <h2>五、模組化主時鐘（MCLK）與時鐘分配器推薦（統一全機同步用）</h2>
+    <p class="note">所有 ADC / DAC / Codec 模組共用同一顆主時鐘（再由主控或緩衝器星狀分送）即可消除跨時脈漂移；不需每塊板子各自裝獨立晶振。</p>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:20%">時鐘模組類型</th>
+          <th style="width:16%">輸出頻率 / 通道</th>
+          <th style="width:36%">適用情境與抖動 (Jitter) 特性</th>
+          <th style="width:28%">點擊複製搜尋關鍵字</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>雙有源音訊晶振模組</strong><br><span class="badge b-g">正式機 / 高音質首選</span></td>
+          <td><strong><code>22.5792 MHz</code></strong> (44.1k族)<br><strong><code>24.576 MHz</code></strong> (48k族)</td>
+          <td>
+            • 自帶 3.3V 穩壓與邏輯切換腳，可直接切換 44.1k / 48k 家族<br>
+            • 選配 NDK / Crystek / Accusilicon 飛秒晶振可達 <strong>&lt; 1 ps</strong> 超低抖動，底噪與動態範圍最佳
+          </td>
+          <td>
+            <button class="kw-btn" data-kw="双晶振 音频 22.5792 24.576">双晶振 音频 22.5792 24.576</button>
+            <button class="kw-btn" data-kw="飞秒时钟板 22.5792 24.576">飞秒时钟板 22.5792 24.576</button>
+            <button class="kw-btn" data-kw="Dual audio oscillator 22.5792 24.576">Dual audio oscillator 22.5792 24.576</button>
+          </td>
+        </tr>
+        <tr>
+          <td><strong><code>Si5351A</code> I2C 時鐘產生器模組</strong><br><span class="badge b-b">低成本實驗原型首選</span></td>
+          <td><strong>3 路獨立輸出</strong><br>(<code>CLK0–CLK2</code> 任意頻率)</td>
+          <td>
+            • 幾十元台幣現成小板，I2C 寫入暫存器即可同時生出 <code>24.576M</code>、<code>22.5792M</code> 或測試時脈<br>
+            • ⚠️ Fractional-N PLL 週期抖動約 <strong>100 ps p-p</strong>，適合早期功能驗證；追求極致高音質建議換回雙專用有源晶振
+          </td>
+          <td>
+            <button class="kw-btn" data-kw="Si5351A I2C clock generator module">Si5351A I2C clock generator module</button>
+            <button class="kw-btn" data-kw="Si5351 時鐘模組">Si5351 時鐘模組</button>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>1 分 4 時鐘緩衝分配器</strong><br><code>CDCLVC1104</code> / <code>NB3N551</code></td>
+          <td><strong>1 入 ➔ 4 出</strong><br>(同相低偏斜)</td>
+          <td>
+            • 當同一組 <code>MCLK</code> 要同時分給多片 ADC/DAC/主控（≥3 負載）時，避免直接並聯拉線造成波形變鈍<br>
+            • 腳對腳偏斜 <strong>&lt; 50 ps</strong>、附加抖動 <strong>&lt; 100 fs</strong>；每路輸出串 <code>22Ω–33Ω</code> 阻尼電阻星狀送往各模組
+          </td>
+          <td>
+            <button class="kw-btn" data-kw="CDCLVC1104 clock buffer board">CDCLVC1104 clock buffer board</button>
+            <button class="kw-btn" data-kw="1 to 4 clock fanout buffer module">1 to 4 clock fanout buffer module</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 6. 模組化前級放大電路 -->
+  <section class="card" data-cat="preamp">
+    <h2>六、模組化麥克風前級放大電路（Preamp）與四合一前端切換推薦</h2>
+    <p class="note">對標 Midas DL16 與業界標準：採用 <strong><code>THAT1510 / THAT1512 / INA217 / INA163</code></strong>（類比低底噪）或 <strong><code>PGA2500 / THAT1580</code></strong>（SPI 數控），並於輸入端整合 <strong><code>-20dB PAD</code> / <code>+48V</code> / <code>+5V</code> / <code>純 Line-In</code></strong> 繼電器先斷後通互斥切換。</p>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:20%">前級 / 配套模組</th>
+          <th style="width:16%">控制方式與通道</th>
+          <th style="width:36%">技術特點與電源／保護需求</th>
+          <th style="width:28%">點擊複製搜尋關鍵字</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong><code>INA217</code> / <code>THAT1510</code> 專業話放模組</strong><br><span class="badge b-g">最易取得 / 專業底噪</span></td>
+          <td>1～2 路 / 板<br>電位器或步進電阻調增益 (0–60dB)</td>
+          <td>
+            • 經典低噪聲平衡儀表放大器（兩者接腳相容），CMRR 高、音質純淨<br>
+            • ⚠️ 需搭配 <strong><code>±12V ～ ±15V</code> 雙電源</strong>；若接電容麥克風需加 <code>47µF/63V</code> 隔直電容防 +48V 倒灌燒毀晶片
+          </td>
+          <td>
+            <button class="kw-btn" data-kw="INA217 话筒放大板">INA217 话筒放大板</button>
+            <button class="kw-btn" data-kw="THAT1510 话放板">THAT1510 话放板</button>
+            <button class="kw-btn" data-kw="INA217 mic preamp module">INA217 mic preamp module</button>
+          </td>
+        </tr>
+        <tr>
+          <td><strong><code>PGA2500</code> SPI 數位控前級模組</strong><br><span class="badge b-p">商業控台 / 可遠端記憶</span></td>
+          <td>1～2 路 / 板<br><strong>SPI 數位控制</strong> (0–65dB, 1dB 步進)</td>
+          <td>
+            • 像 Midas DL16 一樣支援 <strong>Web UI／軟體遠端拉動增益與場景記憶</strong><br>
+            • 原廠板為 <code>PGA2500EVM</code>；淘寶偶有 DIY 單/雙路 SPI 小板（需 <code>±5V</code> + <code>+5V</code> 供電）
+          </td>
+          <td>
+            <button class="kw-btn" data-kw="PGA2500EVM">PGA2500EVM</button>
+            <button class="kw-btn" data-kw="PGA2500 话放 模块">PGA2500 话放 模块</button>
+            <button class="kw-btn" data-kw="PGA2500 SPI preamp board">PGA2500 SPI preamp board</button>
+          </td>
+        </tr>
+        <tr>
+          <td><strong><code>PCM1865</code> 二合一（免外接前級）</strong><br><span class="badge b-b">最省空間原型方案</span></td>
+          <td>4 路 / 板<br>I2C/SPI 控內建 PGA (0～+40dB)</td>
+          <td>
+            • 直接把前級 PGA 整合進 4ch ADC 晶片內部，免掛外接話放板與正負雙電源<br>
+            • 適合動圈麥／一般駐極體／Line-In 快速驗證（如需 +48V 仍須外掛隔直保護）
+          </td>
+          <td>
+            <button class="kw-btn" data-kw="PCM1865 4 channel ADC module">PCM1865 4 channel ADC module</button>
+            <button class="kw-btn" data-kw="PCM1865 TDM board">PCM1865 TDM board</button>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>配套電源：<code>±15V</code> 雙電源 ＋ <code>+48V</code> 幻象供電模組</strong><br><span class="badge b-o">前級必備配套</span></td>
+          <td>每 8 路共用 1 組<br>(≥14mA/路 幻象電流)</td>
+          <td>
+            • <strong>+48V 低紋波升壓板</strong>：經配對 <code>6.81kΩ (0.1%)</code> 電阻送入 XLR Pin 2/3<br>
+            • <strong>±15V 線性穩壓雙電源模組</strong>：與數位 3.3V/5V 徹底隔離，星狀匯回電源單點接地，避免開關電源嘶聲進話放
+          </td>
+          <td>
+            <button class="kw-btn" data-kw="48V 幻象电源 模块 低噪声">48V 幻象电源 模块 低噪声</button>
+            <button class="kw-btn" data-kw="正负15V 低纹波 线性稳压电源板">正负15V 低纹波 线性稳压电源板</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 7. 採購前檢查點 -->
+  <section class="card" data-cat="check">
+    <h2>七、採購前必查的 5 個檢查點（避免買回來不能接）</h2>
+    <div class="checklist">
+      <label class="check-item"><input type="checkbox" /><span><strong>1. 接頭擴充關鍵字：</strong>若不想自己焊端子座，搜尋時加上 <code>with XLR Connectors</code>、<code>with TRS Connectors</code> 或 <code>RCA</code>。</span></label>
+      <label class="check-item"><input type="checkbox" /><span><strong>2. 必須確認「I2C / SPI 控制腳」有引出：</strong>多數 TDM 晶片預設上電不會自動進 TDM16 模式，必須讓板載 MCU 可透過跳線切換，或將 <code>SDA/SCL</code>（或 <code>SPI CS/MOSI/SCLK</code>）引出給 Luckfox 控制。</span></label>
+      <label class="check-item"><input type="checkbox" /><span><strong>3. 確認時脈方向（Master / Slave &amp; MCLK）：</strong>檢查模組是否自帶 <code>24.576 MHz</code> 晶振，或需要由 Luckfox <code>SAI MCLK</code> 腳位提供；兩片串接時整機只能有一個時脈 Master。</span></label>
+      <label class="check-item"><input type="checkbox" /><span><strong>4. 注意類比前端是否齊全：</strong>部分便宜子板只有裸晶片輸入腳（僅容許 1–2Vrms Line-In），接麥克風需另配前級（或優先選內建 PGA 的 <code>PCM1865</code>）。</span></label>
+      <label class="check-item"><input type="checkbox" /><span><strong>5. 高速跳線鐵則（<code>24.576 MHz</code> TDM16）：</strong>杜邦線務必控制在 <strong>5–8 cm 以內</strong>，每條時脈／資料線旁並走 <code>GND</code> 迴流線，並在 <code>BCLK / FSYNC / SDO</code> 串接 <code>22Ω–33Ω</code> 阻尼電阻防振鈴錯位。</span></label>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  document.querySelectorAll('[data-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const f = btn.dataset.filter;
+      document.querySelectorAll('.card[data-cat]').forEach(card => {
+        card.classList.toggle('hidden', f !== 'all' && card.dataset.cat !== f);
+      });
+    });
+  });
+
+  document.querySelectorAll('.kw-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const kw = btn.dataset.kw;
+      try {
+        await navigator.clipboard.writeText(kw);
+        btn.classList.add('copied');
+        const orig = btn.textContent;
+        btn.textContent = '✓ 已複製: ' + orig;
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.textContent = orig;
+        }, 1400);
+      } catch (e) {
+        prompt('請手動複製搜尋關鍵字：', kw);
+      }
+    });
+  });
+
+  document.querySelectorAll('.check-item input').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest('.check-item').classList.toggle('done', cb.checked);
+    });
+  });
+</script>
+</body>
+</html>
