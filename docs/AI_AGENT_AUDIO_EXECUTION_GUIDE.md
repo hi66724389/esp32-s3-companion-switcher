@@ -44,6 +44,12 @@
 * 優先使用 PipeWire 原生 **`libpipewire-module-vban-send`** 與 **`libpipewire-module-vban-recv`**，不要另外開多個 `vban_emitter` CLI 進程。
 * 關鍵屬性：`audio.channels = 128`（或 `64`）、`stream.name = "<與 Matrix Coconut 一致>"`、`sess.latency.msec` 依有線網路抖動調整。
 
+### 2.5 USB 3.0 OTG 直通模式（`ConfigFS f_uac2`）備案規範
+* Core3576 支援透過 Linux USB Gadget ConfigFS (`f_uac2`) 模擬為 USB 錄音介面（單一多軌 UAC2 或多組雙聲道複合端點）。
+* **Windows**：內建 `usbaudio2.sys` 僅提供 WDM/WASAPI；Linux 無法直接吐出 ASIO。若需進 DAW 建議用 **VB-Audio Matrix**（使用者不偏好 FlexASIO），或用 ASIO4ALL（全聚合裝置會鎖定同取樣率，最高可跑 192 kHz）。
+* **macOS**：CoreAudio 原生免驅動，多組雙聲道端點只需在「音訊 MIDI 設定」建 **聚集設備 (Aggregate Device)** 即可（若改為單一多軌 UAC2 則免建）。
+* **首選方案**：只要接線允許，優先走 **有線 Gigabit VBAN 128 軌**，延遲與穩定度優於 USB WDM/ASIO 聚合。
+
 ### 3. Linux ASoC 多晶片設備樹（DTS）綁定邏輯
 * **單顆 / 多顆 Codec（以雙 `CS42448` 為例）**：
   1. 在 `&i2c1` 下分別宣告 `cs42448@48` 與 `cs42448@49`（`compatible = "cirrus,cs42xx8"` 或 `"cirrus,cs42448"`，提供 `mclk` 與 `reset-gpios`）。

@@ -284,3 +284,22 @@
   * [REAPER Routing Matrix (快捷鍵 `Alt+R`) 截圖搜尋](https://www.google.com/search?tbm=isch&q=REAPER+Routing+Matrix)
   * [CamillaDSP GUI Mixer Matrix 截圖搜尋](https://www.google.com/search?tbm=isch&q=CamillaDSP+GUI+Mixer+Matrix)
   * [qpwgraph (PipeWire 圖形跳線) 截圖搜尋](https://www.google.com/search?tbm=isch&q=qpwgraph+PipeWire+patchbay)
+
+---
+
+## 十二、USB 3.0 OTG 直通模式（UAC2 複合設備）、Windows / macOS 驅動與 VBAN 比較
+
+### 1. Core3576 作為 USB Audio (UAC2) 介面卡
+Luckfox Core3576 (RK3576) 內建 **USB 3.0 OTG**，可透過 Linux **USB Gadget ConfigFS (`f_uac2`)** 將開發板模擬為 USB 錄音介面直連電腦：
+* **做法 A（單一多軌 UAC2 設備，最簡潔）**：宣告單一多通道 UAC2 裝置（如 16/24/32 軌），macOS 與 Linux 可直接識別全部音軌，免設聚集設備。
+* **做法 B（USB 複合設備拆成多組雙聲道 UAC2）**：在 ConfigFS 掛載多個 `uac2` function，Windows 與 macOS 會自動辨識出多個獨立的立體聲 USB 音訊端點（不需額外安裝硬體驅動）。
+
+### 2. Windows vs. macOS 電腦端支援差異與 ASIO 說明
+| 作業系統 | 隨插即用支援 | 多組雙聲道合併給 DAW 的做法 | 注意事項與建議 |
+| :--- | :--- | :--- | :--- |
+| **Windows 10/11** | 內建 `usbaudio2.sys` 自動辨識多組 WDM/WASAPI 端點 | • **VB-Audio Matrix / Voicemeeter Matrix**（推薦，矩陣路由完整）<br>• **ASIO4ALL**（可支援至 192 kHz，但所有聚合裝置會被鎖定在同一取樣率且須時脈同步）<br>• **JACK for Windows** | Linux 無法直接封裝出 Windows 專屬的 **ASIO**；若要自行開發專屬 ASIO 驅動，須向 Steinberg 簽署 **ASIO SDK** 並實作 `IASIO` COM 介面與底層 USB/WDM 橋接，工程難度極高。 |
+| **macOS** | **CoreAudio 原生支援 UAC2**，完全免裝驅動 | 開啟系統內建「**音訊 MIDI 設定**」→ 建立「**聚集設備 (Aggregate Device)**」把多組立體聲合併成單一裝置即可 | 若開發板直接設定成「單一多軌 UAC2」，macOS DAW 甚至連聚集設備都不用建就能直接吃到全部軌道。 |
+
+> **最終工業架構結論**：雖然 USB 3.0 OTG (UAC2) 可作為直連電腦的備案，但若主力搭配 Windows **VB-Audio Matrix Coconut**，最佳解法仍是**由 Core3576 透過硬體 SAI/TDM 採集後，直接經 Gigabit 有線網路走 VBAN 128 軌單一串流傳輸**，延遲最低且完全避開 Windows WDM/ASIO 聚合與取樣率鎖定問題。
+
+* **附錄評比網頁**：[Core3576 vs. Raspberry Pi 5 多軌音訊與 TDM 評比](core3576_vs_rpi5_audio_comparison.html)

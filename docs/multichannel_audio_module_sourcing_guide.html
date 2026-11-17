@@ -945,6 +945,39 @@
     </table>
   </section>
 
+  <!-- Section 12: USB 3.0 OTG UAC2 Composite Device & Windows/macOS Comparison -->
+  <section class="section">
+    <h2>十二、USB 3.0 OTG 直通模式（UAC2 複合設備）、Windows / macOS 驅動與 VBAN 比較</h2>
+    <p class="section-desc">Luckfox Core3576 內建 USB 3.0 OTG，可透過 Linux <code>ConfigFS (f_uac2)</code> 模擬為單一多軌或「多組雙聲道 USB 複合裝置」直連電腦。</p>
+    <table>
+      <thead>
+        <tr>
+          <th>作業系統</th>
+          <th>UAC2 隨插即用支援</th>
+          <th>多組立體聲合併給 DAW 方案</th>
+          <th>重點提醒</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Windows 10/11</strong></td>
+          <td>內建 <code>usbaudio2.sys</code> 自動辨識多組 WDM 端點</td>
+          <td><strong>VB-Audio Matrix</strong>（推薦）、<strong>ASIO4ALL</strong>（最高支援 192kHz，但全裝置鎖定同取樣率）、<strong>JACK for Windows</strong></td>
+          <td>Linux 無法直接封裝 Windows 專屬 <strong>ASIO</strong>；自寫 ASIO 須向 Steinberg 申請 SDK 並實作 <code>IASIO</code> COM 橋接，開發難度極高。</td>
+        </tr>
+        <tr>
+          <td><strong>macOS</strong></td>
+          <td><strong>CoreAudio 原生支援 UAC2</strong>，完全免驅動</td>
+          <td>在「<strong>音訊 MIDI 設定</strong>」建立「<strong>聚集設備 (Aggregate Device)</strong>」即可讓 DAW 同時吃下所有軌道</td>
+          <td>若開發板改宣告為單一多軌 UAC2，macOS DAW 連聚集設備都不用建。</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      <strong>最佳工業架構結論</strong>：搭配 Windows Matrix Coconut 時，最穩解法仍是 <strong>Core3576 硬體 SAI/TDM 採集 → Gigabit 有線網路走 VBAN 128 軌單串流</strong>，完全避開 Windows ASIO 聚合限制。另可參考：<a href="core3576_vs_rpi5_audio_comparison.html" target="_blank">Luckfox Core3576 vs. Raspberry Pi 5 評比網頁</a>。
+    </div>
+  </section>
+
 </div>
 
 <script>

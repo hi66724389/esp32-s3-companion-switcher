@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luckfox Core3576 vs Raspberry Pi 5 — 多軌音訊與 TDM 評比</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --orange: #d29922;
+      --red: #f85149;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 20px 60px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container { max-width: 1080px; margin: 0 auto; }
+    h1 { font-size: 28px; margin-bottom: 6px; }
+    .subtitle { color: var(--muted); margin-bottom: 28px; font-size: 15px; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card h2 { margin: 0 0 8px; font-size: 18px; }
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .badge-green { background: rgba(63, 185, 80, 0.15); color: var(--green); border: 1px solid rgba(63, 185, 80, 0.4); }
+    .badge-blue { background: rgba(88, 166, 255, 0.15); color: var(--accent); border: 1px solid rgba(88, 166, 255, 0.4); }
+    .badge-orange { background: rgba(210, 153, 34, 0.15); color: var(--orange); border: 1px solid rgba(210, 153, 34, 0.4); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    th, td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+    th { background: #1c2128; color: var(--accent); font-weight: 600; }
+    tr:last-child td { border-bottom: none; }
+    .win { color: var(--green); font-weight: 600; }
+    .warn { color: var(--orange); font-weight: 600; }
+    code {
+      background: rgba(110, 118, 129, 0.2);
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 12.5px;
+    }
+    .bar-wrap { margin-top: 8px; background: #0d1117; border-radius: 6px; height: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .bar-fill { height: 100%; }
+    .footer-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+    .footer-box h3 { margin-top: 0; font-size: 16px; }
+    ul { margin: 8px 0 0; padding-left: 20px; }
+    li { margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Luckfox Core3576 vs. Raspberry Pi 5</h1>
+    <p class="subtitle">針對「多組硬體音訊晶片 (SAI / I2S / TDM) + PipeWire 128 軌 VBAN + 現場混音 DSP」專案之架構實戰評比</p>
+
+    <div class="cards">
+      <div class="card">
+        <span class="badge badge-green">硬體多軌 / TDM 首選</span>
+        <h2>Luckfox Core3576 (RK3576)</h2>
+        <p>原生內建 <strong>5 組 SAI 控制器</strong>，支援真硬體 8–16 槽 TDM、硬體 ASRC 與雙 Gigabit 網口，專為直連多顆 ADC/DAC 晶片而生。</p>
+        <div style="font-size:12px;color:var(--muted);">實體硬體 TDM 擴充上限：24–40+ 軌</div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:92%;background:var(--green);"></div></div>
+      </div>
+
+      <div class="card">
+        <span class="badge badge-blue">純 CPU / 重度插件首選</span>
+        <h2>Raspberry Pi 5 (BCM2712 + RP1)</h2>
+        <p>搭載 <strong>4× Cortex-A76 @ 2.4 GHz</strong>，單核與 DSP 算力強約 30–40%；但音訊由 RP1 南橋接管，多軌僅支援多線立體聲 I2S（上限 8 軌）。</p>
+        <div style="font-size:12px;color:var(--muted);">實體硬體 I2S 擴充上限：8 軌 (4× 立體聲)</div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:25%;background:var(--orange);"></div></div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:18%;">比較項目</th>
+          <th style="width:27%;">Luckfox Core3576 (RK3576)</th>
+          <th style="width:27%;">Raspberry Pi 5 (BCM2712 + RP1)</th>
+          <th style="width:28%;">對您專案的實際影響</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>CPU 核心與算力</strong></td>
+          <td>4× Cortex-A72 (2.2–2.3 GHz) +<br>4× Cortex-A53 (2.0–2.2 GHz)</td>
+          <td><span class="win">4× Cortex-A76 @ 2.4 GHz</span></td>
+          <td>Pi 5 單核效能強約 30–40%，執行大量 Ardour LV2 插件或長 FIR 濾波較有餘裕。</td>
+        </tr>
+        <tr>
+          <td><strong>硬體音訊匯流排</strong></td>
+          <td><span class="win">原生 5 組 SAI 控制器</span><br>(I2S / PCM / 真硬體 TDM)</td>
+          <td><span class="warn">RP1 南橋 Synopsys I2S</span><br>(無 SAI，僅多線立體聲模式)</td>
+          <td>接 2–3 組多軌 Codec（如多顆 <code>CS42448</code> / <code>AD1938</code>）時，Core3576 具備壓倒性優勢。</td>
+        </tr>
+        <tr>
+          <td><strong>單板最高實體軌數</strong></td>
+          <td><span class="win">24–40+ 軌實體通道</span><br>(單線 8 槽 TDM / 長幀最高 16 槽)</td>
+          <td><span class="warn">上限 8 軌</span><br>(4 條平行立體聲資料線 × 2ch)</td>
+          <td>Pi 5 若不外接 USB 錄音介面或 FPGA，GPIO 原生直連物理上限就是 8 軌。</td>
+        </tr>
+        <tr>
+          <td><strong>硬體音訊輔助單元</strong></td>
+          <td><span class="win">內建硬體 ASRC</span> (2ch×2 + 4ch×2)、8ch PDM 麥克風陣列、SPDIF</td>
+          <td>無硬體 ASRC，依賴軟體 SRC</td>
+          <td>Core3576 跨不同取樣率設備同步時，不需額外消耗 CPU 做重採樣。</td>
+        </tr>
+        <tr>
+          <td><strong>有線網路介面</strong></td>
+          <td><span class="win">2× 1000M (Gigabit) 乙太網路</span></td>
+          <td>1× 1000M (Gigabit) 乙太網路</td>
+          <td>Core3576 可將 <strong>VBAN 音訊專網</strong> 與管理網路實體隔離，減少封包抖動。</td>
+        </tr>
+        <tr>
+          <td><strong>VBAN 128 軌表現</strong><br>(48kHz/24-bit ≈ 185 Mbps)</td>
+          <td>4×A72 + 雙網口可穩定運行 (16,000 pkt/s)；建議有線專網，必要時切 16-bit 或雙 64 軌</td>
+          <td><span class="win">A76 處理 16,000 pkt/s 更輕鬆</span>，適合當後端純 VBAN / DSP 混音主機</td>
+          <td>兩者網路頻寬都夠用；差別在於後端是否同時掛載極高負載的效果器。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer-box">
+      <h3>最終架構選型決策建議</h3>
+      <ul>
+        <li><strong>維持使用 Luckfox Core3576</strong>：只要您需要將「2～3 組多軌 ADC/DAC 晶片」直接透過板載腳位接進 Linux 系統（16～24 軌以上實體輸入輸出），<strong>Core3576 是唯一能原生跑滿多組 TDM 的方案</strong>。</li>
+        <li><strong>改用 / 搭配 Raspberry Pi 5</strong>：如果您改用現成 USB 多軌錄音介面，或採「<strong>Core3576 當硬體 TDM 採集前端 → VBAN 送給 Pi 5 / Windows Matrix Coconut 做主力混音</strong>」的分工架構，就能同時吃下 Core3576 的多軌 SAI 與 Pi 5 的 A76 高算力。</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
