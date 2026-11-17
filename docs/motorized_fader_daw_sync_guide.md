@@ -112,3 +112,23 @@ flowchart LR
 2. **怎麼把程式寫進 Luckfox 裡面**：
    * **方式 A（本機直接開發 — Python 最方便）**：接上網線或 USB RNDIS 虛擬網卡，用 **`SSH`**（或 `ADB`）連進 Luckfox 終端機，直接編輯並執行 `python3 fader_bridge.py`。
    * **方式 B（電腦交叉編譯 — C / C++ / Rust）**：在電腦安裝對應的 ARM / ARM64 Cross-Toolchain 編譯出執行檔後，透過 `scp` 傳進 Luckfox，再掛入 `systemd` 背景常駐執行。
+
+---
+
+## 八、Linux ARM64 即時混音軟體與原生 LV2 / CLAP 插件下載管道
+
+1. **系統與架構選擇**：
+   * **Luckfox Core3576 / Core3566**：裝官方 **Debian 12 (`arm64` / `aarch64`)** 或 **Buildroot**（勿裝 PC 版 Ubuntu）。
+   * **Luckfox Lyra (`RK3506G2`)**：裝官方 **Debian 12 (`armhf`)** 或 **Buildroot**。
+2. **原生 ARM64 即時混音／DAW 軟體**：
+   * **`Ardour`**（全功能調音台 + OSC/Mackie）、**`Non-Mixer-XT`**（極簡通道條混音座）、**`Qtractor`**、**`CamillaDSP + CamillaGUI`**（無頭超低延遲 DSP）、**`Carla`**（插件宿主機架）、**`PipeWire` / `JACK (jackd2)`**。
+3. **LV2 / CLAP 插件數量與下載來源（ARM64 原生免轉譯）**：
+   * **Debian 官方套件庫（最穩、一鍵 `apt install`）**：
+     ```bash
+     sudo apt update
+     sudo apt install lsp-plugins-lv2 dragonfly-reverb-lv2 x42-plugins calf-plugins
+     ```
+     *（涵蓋專業參數 EQ、壓縮器、Gate、Limiter、殘響、即時頻譜與音量錶；`lsp-plugins` 與 `dragonfly-reverb` 亦提供 `-clap` 與 `-vst3` 原生 ARM64 包。）*
+   * **KXStudio 官方 ARM64 軟體源**：https://kx.studio/Repositories （提供大量專門打包好的 Linux ARM64 音訊插件與宿主）。
+   * **開源社群與插件目錄**：[LinuxAudio Plugins Wiki](https://wiki.linuxaudio.org/apps/all/start)、GitHub 上開源專案（如 `Airwindows`、`Surge XT`、`ZL Equalizer`）皆可抓原始碼或 ARM64 `.deb/.tar.gz` 使用。
+   * ⚠️ **注意**：PC 商業 Windows VST（Waves / FabFilter 等 `.dll`/`.vst3`）為 `x86_64` 架構，在 ARM 上跑 Wine/Yabridge 延遲與穩定度不適合現場控台，實務請全面採用原生 **LV2 / CLAP**。
