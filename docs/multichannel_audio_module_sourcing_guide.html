@@ -829,6 +829,19 @@
         </tr>
       </tbody>
     </table>
+
+    <h3>4. 可切換「增益輸出 ↔ Line Output（0 dB 直通 / +4 dBu / -10 dBV）」方案與模組</h3>
+    <div class="info-box">
+      <ul>
+        <li><strong>數位控制 IC 單鍵切換（最推薦）</strong>：<code>PGA2311</code> / <code>PGA4311</code> / <code>CS3318</code> 本身即支援寫入 <code>0 dB</code> 作為固定 Line Out，或切為可調增益輸出（最高 +31.5 dB），由軟體一鍵切換模式。<br>
+          <button class="kw-btn" data-kw="PGA4311 4通道音量控制板">PGA4311 4通道音量控制板</button> <button class="kw-btn" data-kw="CS3318 8通道音量板">CS3318 8通道音量板</button>
+        </li>
+        <li><strong>繼電器旁路（Relay Bypass）雙模式前級板</strong>：開啟旁路即為純 Line Output 直通，關閉旁路即進入前級放大調整增益。<br>
+          <button class="kw-btn" data-kw="前級 直通旁路 繼電器模組">前級 直通旁路 繼電器模組</button>
+        </li>
+        <li><strong>硬體切換回授電阻（-10 dBV ↔ +4 dBu）</strong>：在 <code>OPA1632</code> / <code>NE5532</code> 回授路徑加上 DIP 撥碼開關或低失真類比開關（<code>TS5A23157</code> / <code>DG419</code>），一鍵切換 0 dB 與 +6/+12 dB 輸出電平。</li>
+      </ul>
+    </div>
   </section>
 
 </div>
