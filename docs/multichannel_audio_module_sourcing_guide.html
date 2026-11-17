@@ -646,6 +646,64 @@
     </table>
   </section>
 
+  <!-- Section 8: ASoC, SAI, Multi-Codec DTS & Raspberry Pi Reference -->
+  <section class="section">
+    <h2>八、Linux ASoC 驅動架構、SAI 介面與多晶片設備樹 (DTS) 實作詳解</h2>
+    <p class="section-desc">釐清核心驅動 (<code>.c</code>)、匯流排掛載與設備樹 (<code>.dts</code>) 的分工，並附上雙顆 <code>CS42448</code> 實戰範本與樹莓派同架構參考資源。</p>
+
+    <div class="info-box">
+      <h3>1. 檔案層級分工與 SAI 說明</h3>
+      <ul>
+        <li><strong><code>&lt;chip&gt;.c</code>（如 <code>cs42xx8.c</code>）</strong>：音訊與 TDM 核心邏輯（並非設備樹），定義通道數、取樣率、I2S/TDM 格式與 ALSA 混音暫存器。</li>
+        <li><strong><code>&lt;chip&gt;-i2c.c</code> / <code>-spi.c</code></strong>：控制匯流排掛載介面（硬體二選一即可），僅傳送音量與模式設定指令；高速音訊永遠走 SoC 的 <strong>SAI / I2S (TDM)</strong> 腳位。</li>
+        <li><strong>SAI（Serial Audio Interface，串列音訊介面）</strong>：SoC 內部負責處理 I2S / TDM 高速數位音訊的硬體控制器，負責發送與接收 <code>MCLK</code>、<code>BCLK</code>、<code>FSYNC</code> 與串列音訊資料。</li>
+        <li><strong>設備樹（<code>.dts</code> → <code>.dtb</code>/<code>.dtbo</code>）</strong>：硬體接線說明書。多顆相同晶片無法自動偵測，須設不同 I2C 位址（如 <code>0x48</code>、<code>0x49</code>）並分別綁定至 <code>&amp;sai0</code> / <code>&amp;sai1</code>。</li>
+      </ul>
+    </div>
+
+    <h3>2. 雙顆 CS42448 設備樹 (<code>.dts</code>) 範例</h3>
+    <pre style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:13px;line-height:1.5;color:#e6edf3;"><code>/ {
+    sound {
+        compatible = "simple-audio-card";
+        simple-audio-card,name = "luckfox-multi-cs42448";
+
+        simple-audio-card,dai-link@0 {
+            format = "dsp_a";
+            bitclock-master = &lt;&amp;link0_cpu&gt;;
+            frame-master = &lt;&amp;link0_cpu&gt;;
+            mclk-fs = &lt;256&gt;;
+            link0_cpu: cpu { sound-dai = &lt;&amp;sai0&gt;; dai-tdm-slot-num = &lt;8&gt;; dai-tdm-slot-width = &lt;32&gt;; };
+            codec { sound-dai = &lt;&amp;cs42448_a&gt;; };
+        };
+
+        simple-audio-card,dai-link@1 {
+            format = "dsp_a";
+            bitclock-master = &lt;&amp;link1_cpu&gt;;
+            frame-master = &lt;&amp;link1_cpu&gt;;
+            mclk-fs = &lt;256&gt;;
+            link1_cpu: cpu { sound-dai = &lt;&amp;sai1&gt;; dai-tdm-slot-num = &lt;8&gt;; dai-tdm-slot-width = &lt;32&gt;; };
+            codec { sound-dai = &lt;&amp;cs42448_b&gt;; };
+        };
+    };
+};
+
+&amp;i2c1 {
+    status = "okay";
+    cs42448_a: cs42448@48 { compatible = "cirrus,cs42448"; reg = &lt;0x48&gt;; #sound-dai-cells = &lt;0&gt;; clocks = &lt;&amp;audio_mclk&gt;; clock-names = "mclk"; status = "okay"; };
+    cs42448_b: cs42448@49 { compatible = "cirrus,cs42448"; reg = &lt;0x49&gt;; #sound-dai-cells = &lt;0&gt;; clocks = &lt;&amp;audio_mclk&gt;; clock-names = "mclk"; status = "okay"; };
+};
+&amp;sai0 { #sound-dai-cells = &lt;0&gt;; status = "okay"; };
+&amp;sai1 { #sound-dai-cells = &lt;0&gt;; status = "okay"; };</code></pre>
+
+    <h3>3. 官方規範、樹莓派同架構開源專案與教學影片</h3>
+    <ul>
+      <li><strong>Linux 主線 CS42xx8 設備樹規範</strong>：<a href="https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/sound/cirrus,cs42xx8.yaml" target="_blank">cirrus,cs42xx8.yaml (GitHub)</a></li>
+      <li><strong>Linux 主線萬用音效卡規範</strong>：<a href="https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/sound/simple-card.yaml" target="_blank">simple-card.yaml (GitHub)</a></li>
+      <li><strong>樹莓派同架構實作（CS42448 + I2C + TDM + CamillaDSP）</strong>：<a href="https://github.com/Audio-Injector/Octo" target="_blank">Audio-Injector/Octo (GitHub)</a></li>
+      <li><strong>YouTube 實作教學搜尋</strong>：<a href="https://www.youtube.com/results?search_query=Audio+Injector+Octo+Raspberry+Pi" target="_blank">Audio Injector Octo Raspberry Pi</a> · <a href="https://www.youtube.com/results?search_query=Raspberry+Pi+I2S+TDM+Audio+Codec+Device+Tree" target="_blank">Raspberry Pi I2S TDM Device Tree</a></li>
+    </ul>
+  </section>
+
 </div>
 
 <script>

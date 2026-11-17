@@ -99,3 +99,83 @@
 | **`PCM1865` / `PCM186x`** | • [pcm186x.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/pcm186x.c)<br>• [pcm186x-i2c.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/pcm186x-i2c.c) / [pcm186x-spi.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/pcm186x-spi.c) | Linux 主線內建（含 PGA 增益控制） |
 | **`CS5368`** *(無需專用驅動)* | • 採萬用 **`simple-audio-card`** / **`audio-graph-card2`** 綁定 `SAI TDM`<br>• 參考同廠 I2C ADC：[cs53l30.c](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/cs53l30.c) | DTS 設定 `format = "dsp_a"`、`dai-tdm-slot-num = <8>`、`dai-tdm-slot-width = <32>`、`dai-tdm-slot-rx-mask = <0xff>` |
 | **`PGA2500`** *(SPI 數控前級)* | • 官方規格書：[TI PGA2500 Datasheet](https://www.ti.com/lit/ds/symlink/pga2500.pdf) | 無須寫核心驅動；直接由 `spidev` / Python / MCU 送出 16-bit SPI 控制字調增益（10–65 dB） |
+
+---
+
+## 八、Linux ASoC 驅動架構、SAI 介面與多晶片設備樹 (DTS) 實作詳解
+
+### 1. `<chip>.c` vs `-i2c.c` / `-spi.c` vs 設備樹 (`.dts`/`.dtb`) 的分工
+* **`<chip>.c`**（如 `cs42xx8.c`）：**音訊與 TDM 核心驅動**（不是設備樹）。定義支援通道數、取樣率、I2S/TDM 格式與 ALSA 混音器暫存器。
+* **`<chip>-i2c.c` / `<chip>-spi.c`**：**控制匯流排掛載介面**（與硬體二選一即可）。僅負責傳送設定指令（音量、模式切換）；真正的高速音訊資料永遠走 SoC 的 **SAI / I2S (TDM)** 腳位。
+* **SAI（Serial Audio Interface，串列音訊介面）**：SoC 晶片內部負責處理 I2S / TDM 高速數位音訊的硬體控制器，負責發送與接收 `MCLK`、`BCLK`、`FSYNC` 時脈與多通道串列音訊資料。
+* **設備樹（`.dts` 編譯為 `.dtb` / `.dtbo`）**：硬體接線說明書。I2C / SPI 不會像 USB 自動偵測，若要掛載多顆相同晶片（例如 2 顆 `CS42448`），必須在硬體設定不同 I2C 位址（如 `0x48` 與 `0x49`），並在設備樹分別宣告、綁定到各自的 `&sai0` / `&sai1`。
+
+### 2. 多顆 `CS42448` 設備樹 (`.dts`) 與 `simple-audio-card` 寫法範例
+
+```dts
+/ {
+    sound {
+        compatible = "simple-audio-card";
+        simple-audio-card,name = "luckfox-multi-cs42448";
+
+        /* 第一顆 CS42448 (0x48) <-> SAI0 */
+        simple-audio-card,dai-link@0 {
+            format = "dsp_a";
+            bitclock-master = <&link0_cpu>;
+            frame-master = <&link0_cpu>;
+            mclk-fs = <256>;
+            link0_cpu: cpu {
+                sound-dai = <&sai0>;
+                dai-tdm-slot-num = <8>;
+                dai-tdm-slot-width = <32>;
+            };
+            codec { sound-dai = <&cs42448_a>; };
+        };
+
+        /* 第二顆 CS42448 (0x49) <-> SAI1 */
+        simple-audio-card,dai-link@1 {
+            format = "dsp_a";
+            bitclock-master = <&link1_cpu>;
+            frame-master = <&link1_cpu>;
+            mclk-fs = <256>;
+            link1_cpu: cpu {
+                sound-dai = <&sai1>;
+                dai-tdm-slot-num = <8>;
+                dai-tdm-slot-width = <32>;
+            };
+            codec { sound-dai = <&cs42448_b>; };
+        };
+    };
+};
+
+&i2c1 {
+    status = "okay";
+    cs42448_a: cs42448@48 {
+        compatible = "cirrus,cs42448";
+        reg = <0x48>;
+        #sound-dai-cells = <0>;
+        clocks = <&audio_mclk>;
+        clock-names = "mclk";
+        status = "okay";
+    };
+    cs42448_b: cs42448@49 {
+        compatible = "cirrus,cs42448";
+        reg = <0x49>;
+        #sound-dai-cells = <0>;
+        clocks = <&audio_mclk>;
+        clock-names = "mclk";
+        status = "okay";
+    };
+};
+
+&sai0 { #sound-dai-cells = <0>; status = "okay"; };
+&sai1 { #sound-dai-cells = <0>; status = "okay"; };
+```
+
+載入後執行 `aplay -l` / `arecord -l` 即可看到 `device 0` 與 `device 1` 兩組獨立多軌裝置，並可直接於 `alsamixer` 與 PipeWire / JACK / CamillaDSP 路由。
+
+### 3. 官方參考規範與樹莓派同架構實作專案（`CS42448` + I2C + TDM）
+* **Linux 主線 CS42xx8 設備樹規範**：[cirrus,cs42xx8.yaml](https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/sound/cirrus,cs42xx8.yaml)
+* **Linux 主線萬用音效卡規範**：[simple-card.yaml](https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/sound/simple-card.yaml)
+* **完全同架構開源專案（樹莓派 + `CS42448` + I2C + TDM + CamillaDSP）**：[Audio-Injector/Octo (GitHub)](https://github.com/Audio-Injector/Octo)（包含完整的 DTS Overlay、安裝腳本與 6 進 8 出實作討論）
+* **YouTube 實作影片搜尋**：[Audio Injector Octo Raspberry Pi](https://www.youtube.com/results?search_query=Audio+Injector+Octo+Raspberry+Pi) ｜ [Raspberry Pi I2S TDM Audio Codec Device Tree](https://www.youtube.com/results?search_query=Raspberry+Pi+I2S+TDM+Audio+Codec+Device+Tree)
